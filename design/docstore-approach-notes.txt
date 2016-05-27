@@ -1,0 +1,39 @@
+DOC STORE APPROACH
+
+YAML / JSON / EDN encoded files:
+
+---
+id: "123-456-789"
+key: 123 // comment
+key: "string"
+key:
+  - "array"
+  - "of"
+  - "values"
+key:
+  embedded: "object"
+---
+
+
+can be arbitrarily stored in folders
+could have folder names "mean" something (ex. type)
+could have file names "mean" something (ex. id, slug)
+can have data re: multiple entities in a file (delimited by ---)
+can have data re: same entity across files
+can have embedded entries
+
+- no versioning/time
++ can use multiple serialization methods
++ standard serialization / well known
+
+Schema / Spec / Rules:
+
+  TODO
+
+
+Query language:
+  datalog
+  SQL
+  mongo
+  rethink
+  blueprint

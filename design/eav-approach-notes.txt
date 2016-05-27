@@ -1,0 +1,35 @@
+EAV(T) STORE
+
+entity-id attr value time
+
+---
+"123-456-789" :foobar "bar" 12345678
+"123-456-789" :baz    "zzz" 12345678
+---
+
+---123-456-789.data
+:foobar "bar" 12345678
+:baz    "zzz" 12345678
+---
+
+---
+id "123-456-789"
+id :foobar "bar" 12345678
+id :baz    "zzz" 12345678
+---
+
+---123-456-789.data
+:foobar "bar"
+:baz    "zzz"
+---
+
+
+can be arbitrarily stored in folders
+could have folders "mean" something (ex. type) // not compatible w/ versioning
+could have filenames "mean" something (ex. id, slug) // not compatible w/ versioning
+can have data re: multiple entities in one file
+can have data re: same entity across files
+
+? embedded entries
+
+(optional) time / versioning
