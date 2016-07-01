@@ -1,0 +1,44 @@
+---
+types:
+  - type: episode
+    id:
+      - type: string
+    name:
+      - type: string
+
+  - type: level
+    id:
+      - type: string
+    name:
+      - type: string
+
+  - type: word
+    id:
+      - type: string
+
+  - type: translation
+    id:
+      - type: string
+    value:
+      - type: string
+
+  - type: variation
+    id:
+      - type: string
+    name:
+      - type: string
+    language:
+      - type: string
+    region:
+      - type: string
+    script:
+      - type: string
+      - enum:
+        - "Ltn"
+        - "Hanz"
+
+relationships:
+  - [episode, -*, level]
+  - [level, *-*, word]
+  - [word, -*, translation]
+  - [translation/variation-id, *-, variation/translation-ids]

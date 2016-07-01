@@ -1,0 +1,20 @@
+---
+id:   banker
+name: Banker
+type: episode
+levels:
+  - id: numbers-1
+    name: Numbers 1
+    type: level
+    word-ids:
+      - one
+      - two
+      - three
+  - id: numbers-2
+    name: Numbers 2
+    type: level
+    word-ids:
+      - four
+      - five
+      - six
+---
