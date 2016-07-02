@@ -34,11 +34,11 @@ types:
     script:
       - type: string
       - enum:
-        - "Ltn"
-        - "Hanz"
+        - Ltn
+        - Hanz
 
 relationships:
-  - [episode, -*, level]
-  - [level, *-*, word]
-  - [word, -*, translation]
-  - [translation/variation-id, *-, variation/translation-ids]
+  - [episode, "-*", level]
+  - [level, "*-*", word]
+  - [word, "-*", translation]
+  - [translation/variation-id, "*-", variation/translation-ids]
