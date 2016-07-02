@@ -1,0 +1,20 @@
+---
+id:   artist
+name: Artist
+type: episode
+levels:
+  - id: colors-1
+    name: Colors 1
+    type: level
+    word-ids:
+      - black
+      - red
+      - yellow
+  - id: colors-2
+    name: Colors 2
+    type: level
+    word-ids:
+      - green
+      - blue
+      - white
+---

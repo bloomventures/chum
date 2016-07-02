@@ -1,0 +1,68 @@
+---
+id: can-en
+name: Canadian English
+language: en
+region: CA
+script: Ltn
+type: variation
+---
+variation-id: can-en
+type: translation
+word-id: black
+value: black
+---
+variation-id: can-en
+type: translation
+word-id: red
+value: red
+---
+variation-id: can-en
+type: translation
+word-id: yellow
+value: yellow
+---
+variation-id: can-en
+type: translation
+word-id: green
+value: green
+---
+variation-id: can-en
+type: translation
+word-id: blue
+value: blue
+---
+variation-id: can-en
+type: translation
+word-id: white
+value: white
+---
+variation-id: can-en
+type: translation
+word-id: one
+value: one
+---
+variation-id: can-en
+type: translation
+word-id: two
+value: two
+---
+variation-id: can-en
+type: translation
+word-id: three
+value: three
+---
+variation-id: can-en
+type: translation
+word-id: four
+value: four
+---
+variation-id: can-en
+type: translation
+word-id: five
+value: five
+---
+variation-id: can-en
+type: translation
+word-id: six
+value: six
+---

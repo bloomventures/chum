@@ -1,0 +1,68 @@
+---
+id: can-fr
+name: Canadian French
+language: fr
+region: CA
+script: Ltn
+type: variation
+---
+variation-id: can-fr
+type: translation
+word-id: black
+value: noir
+---
+variation-id: can-fr
+type: translation
+word-id: red
+value: rouge
+---
+variation-id: can-fr
+type: translation
+word-id: yellow
+value: jeune
+---
+variation-id: can-fr
+type: translation
+word-id: green
+value: vert
+---
+variation-id: can-fr
+type: translation
+word-id: blue
+value: bleu
+---
+variation-id: can-fr
+type: translation
+word-id: white
+value: blanc
+---
+variation-id: can-fr
+type: translation
+word-id: one
+value: une
+---
+variation-id: can-fr
+type: translation
+word-id: two
+value: deux
+---
+variation-id: can-fr
+type: translation
+word-id: three
+value: trois
+---
+variation-id: can-fr
+type: translation
+word-id: four
+value: quatre
+---
+variation-id: can-fr
+type: translation
+word-id: five
+value: cinq
+---
+variation-id: can-fr
+type: translation
+word-id: six
+value: six
+---
