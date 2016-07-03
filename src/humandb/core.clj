@@ -8,6 +8,11 @@
   (println x)
   x)
 
+(defn init! [schema]
+  (d/create-conn schema))
+
+(def q d/q)
+
 (defmulti parse-data-file
   (fn [path]
     (let [file (fs/file path)
@@ -35,5 +40,31 @@
                    (filter fs/file?))]
     (mapcat parse-data-file files)))
 
+(defn import-doc [conn doc]
+  (d/transact! conn [doc]))
+
+(defn schema->lookup [schema]
+  (reduce (fn [lookup [k _]]
+            (let [ks (-> k
+                         name
+                         (string/split #"-")
+                         (->> (map keyword)))]
+              (-> lookup
+                  (update-in [(first ks)] (fnil (fn [s] (conj s (last ks))) #{}))
+                  (update-in [(last ks)] (fnil (fn [s] (conj s (first ks))) #{})))))
+          {}
+          schema))
+
+(defn import-docs [conn docs]
+  (doseq [doc docs]
+    (import-doc conn doc)))
+
+(defn relationships->schema [relationships]
+  (reduce (fn [schema r]
+            (assoc schema
+                   (keyword "rel" (str (r 0) "-" (r 2)))
+                   {:db/cardinality :db.cardinality/many}))
+          {}
+          relationships))
 
 (defn read-db [config] )
