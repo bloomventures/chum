@@ -18,7 +18,13 @@
           schema (db/relationships->schema relationships)]
 
       (is (= schema {:rel/episode-level {:db/cardinality :db.cardinality/many}
-                     :rel/level-word {:db/cardinality :db.cardinality/many}}))))
+                     :rel/level-word {:db/cardinality :db.cardinality/many}})))
+
+    (testing "relationship keys are in alpha order"
+      (let [relationships [["zzz" "-*" "aaa"]]
+            schema (db/relationships->schema relationships)]
+
+        (is (= schema {:rel/aaa-zzz {:db/cardinality :db.cardinality/many}})))))
 
   (testing "schema->lookup"
     (let [schema {:rel/episode-level {:db/cardinality :db.cardinality/many}
