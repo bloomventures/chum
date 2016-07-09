@@ -9,19 +9,18 @@
 (def db-config
   {:path "./resources/penyo-data"})
 
-
 (deftest core-tests
 
   (testing "relationships->schema"
-    (let [relationships [["episode" "-*" "level"]
-                         ["level" "-*" "word"]]
+    (let [relationships [["episode" "..." "level"]
+                         ["level" "..." "word"]]
           schema (db/relationships->schema relationships)]
 
       (is (= schema {:rel/episode-level {:db/cardinality :db.cardinality/many}
                      :rel/level-word {:db/cardinality :db.cardinality/many}})))
 
     (testing "relationship keys are in alpha order"
-      (let [relationships [["zzz" "-*" "aaa"]]
+      (let [relationships [["zzz" "..." "aaa"]]
             schema (db/relationships->schema relationships)]
 
         (is (= schema {:rel/aaa-zzz {:db/cardinality :db.cardinality/many}})))))
@@ -34,7 +33,7 @@
                    :word #{:level}}]
       (is (= result (db/schema->lookup schema)))))
 
-  (testing "import-docs"
+  #_(testing "import-docs"
     (testing "basic"
       (let [schema {}
             conn (db/init! schema)
@@ -53,7 +52,7 @@
 
     (testing "one-to-many"
       (testing "foreign key"
-        (let [raw-schema [["episode" "-*" "level"]]
+        (let [raw-schema [["level" "episode-id" "episode"]]
               schema {:rel/episode-level {:db/cardinality :db.cardinality/many}}
               docs [{:id 1
                      :name "Artist"
@@ -106,4 +105,53 @@
 
 
     )
-  )
+
+
+  (testing "update-rel-keys"
+
+    (testing "foreign key"
+      (let [relationships [["level" "episode-id" "episode"]]
+            schema (db/relationships->schema relationships)
+            doc {:id 1
+                 :type "level"
+                 :episode-id 3}]
+
+         (is (= (db/update-rel-keys relationships doc)
+                [[1 :type "level"]
+                 [1 :rel/episode-level 3]]))))
+
+    (testing "id array"
+      (let [relationships [["level" "episode-id" "episode"]]
+            doc {:id 1
+                 :type "episode"
+                 :level-ids [2 3]}]
+
+        (is (= (db/update-rel-keys relationships doc)
+               [[1 :type "episode"]
+                [1 :rel/episode-level 2]
+                [1 :rel/episode-level 3]]))))
+
+
+    (testing "embedded"
+      (let [schema {}
+            conn (db/init! schema)
+            docs [{:id 1
+                   :name "Artist"
+                   :type "episode"
+                   :levels [{:id 2
+                             :name "Colors 1"
+                             :type "level"}]}]]
+
+
+        ; TODO
+        )))
+
+  (testing "doc->eav"
+    (let [doc  {:id 2
+                :name "Colors 1"
+                :type "level"
+                :episode-id 1}]
+      (is (= (db/doc->eav doc)
+             [[2 :name "Colors 1"]
+              [2 :type "level"]
+              [2 :episode-id 1]])))))

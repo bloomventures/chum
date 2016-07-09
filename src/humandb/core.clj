@@ -40,6 +40,52 @@
                    (filter fs/file?))]
     (mapcat parse-data-file files)))
 
+(defn doc->eav [doc]
+  (reduce (fn [memo [k v]]
+            (if (= k :id)
+              memo
+              (conj memo [(doc :id) k v])))
+          []
+          doc))
+
+(defn rels->rel-key [rel-1 rel-2]
+  (let [sorted-keys (sort [rel-1 rel-2])]
+    (keyword "rel" (string/join "-" sorted-keys))))
+
+(defn update-rel-keys
+  "given a key, returns the correspoding relationship key, if any
+   ex. episode-id -> rel/episode-level"
+  [relationships doc]
+
+  (let [rel-keys (reduce (fn [memo [type attr rel-type]]
+                           (if (= type (doc :type))
+                             (assoc memo (keyword attr) rel-type)
+                             memo))
+                         {}
+                         relationships)]
+  (->> doc
+       doc->eav
+       (map (fn [[eid attr value]]
+              (if-let [rel-type (rel-keys attr)]
+                (cond
+                  ; single object, ex. {:id 2}
+                  (map? value)
+                  [eid attr (value :id)]
+                  ; TODO also process object
+
+                  ; list of objects, ex [{:id 1} {:id 2} ...]
+                  (and (coll? value) (map? (first value)))
+                  [] ;TODO process list of objects
+
+                  ; list of ids, ex. [1 2 ...]
+                  (coll? value)
+                  [] ; TODO process list of ids
+
+                  ; single id, ex. 2
+                  :else
+                  [eid (rels->rel-key (doc :type) rel-type) value])
+                [eid attr value]))))))
+
 (defn import-doc [conn doc]
   (d/transact! conn [doc]))
 

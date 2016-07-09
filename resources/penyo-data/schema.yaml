@@ -38,7 +38,7 @@ types:
         - Hanz
 
 relationships:
-  - [episode, "-*", level]
-  - [level, "*-*", word]
-  - [word, "-*", translation]
-  - [translation/variation-id, "*-", variation/translation-ids]
+  - [episode, levels, level]
+  - [level, word-ids, word]
+  - [translation, variation-id, variation]
+  - [translation, word-id, word]
