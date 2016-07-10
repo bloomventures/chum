@@ -103,10 +103,9 @@
 
 (defn relationships->schema [relationships]
   (reduce (fn [schema r]
-            (let [sorted-keys (sort [(first r) (last r)])]
-              (assoc schema
-                   (keyword "rel" (string/join "-" sorted-keys))
-                   {:db/cardinality :db.cardinality/many})))
+            (assoc schema
+              (rels->rel-key (first r) (last r))
+              {:db/cardinality :db.cardinality/many}))
           {}
           relationships))
 
