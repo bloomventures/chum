@@ -33,79 +33,84 @@
                    :word #{:level}}]
       (is (= result (db/schema->lookup schema)))))
 
-  #_(testing "import-docs"
+
+  (testing "import-docs"
     (testing "basic"
-      (let [schema {}
+      (let [relationships []
+            schema {}
             conn (db/init! schema)
             docs [{:name "Alice"
                    :id 1}
                   {:name "Bob"
                    :id 2}]]
 
-        (db/import-docs conn docs)
+        (db/import-docs conn relationships docs)
 
         (is (= "Bob" (first (db/q '[:find [?name]
                                     :where
-                                    [?e :name ?name]
-                                    [?e :id 2]]
+                                    [2 :name ?name]]
                                   @conn))))))
 
-    (testing "one-to-many"
-      (testing "foreign key"
-        (let [raw-schema [["level" "episode-id" "episode"]]
-              schema {:rel/episode-level {:db/cardinality :db.cardinality/many}}
-              docs [{:id 1
-                     :name "Artist"
-                     :type "episode"}
-                    {:id 2
-                     :name "Colors 1"
-                     :type "level"
-                     :episode-id 1}]
-              conn (db/init! schema)]
 
-          (db/import-docs conn docs)
+    (testing "evil"
+      (let [relationships [["episode", "levels", "level"]
+                           ["level", "word-ids", "word"]
+                           ["translation", "variation-id", "variation"]
+                           ["translation", "word-id", "word"]]
+            schema (db/relationships->schema relationships)
+            conn (db/init! schema)
+            docs [{:name "Artist"
+                   :type "episode"
+                   :id 1
+                   :levels [{:id 2
+                             :type "level"
+                             :word-ids [3]}]}
+                  {:id 4
+                   :type "translation"
+                   :variation-id 5
+                   :word-id 3
+                   :value "vert"}
+                  {:id 5
+                   :type "variation"
+                   :name "fr-ca"}
+                  {:id 3
+                   :type "word"
+                   :name "green"}]]
 
-          ; TODO: need to have import-doc add the :rel/episode-level based on lookup table
+        (db/import-docs conn relationships docs)
 
-          (is (= "Artist" (first (db/q '[:find [?name]
-                                         :where
-                                         [?lvl :id 2]
-                                         [?e :rel/episode-level ?lvl]
-                                         [?e :name ?name]]
-                                       @conn))))))
+        (is (= "Artist" (first (db/q '[:find [?name]
+                                       :where
+                                       [?variation-id :name "fr-ca"]
+                                       [?translation-id :rel/translation-variation ?variation-id]
+                                       [?translation-id :rel/translation-word ?word-id]
+                                       [?level-id :rel/level-word ?word-id]
+                                       [?episode-id :rel/episode-level ?level-id]
+                                       [?episode-id :name ?name]]
+                                  @conn)))))))
 
-      (testing "id array"
-        (let [schema {}
-              conn (db/init! schema)
-              docs [{:id 1
-                     :name "Artist"
-                     :type "episode"
-                     :level-ids [2]}
-                    {:id 2
-                     :name "Colors 1"
-                     :type "level"}]]
+  (testing "docs->txs"
+    (testing "foreign key"
+      (let [relationships [["level" "episode-id" "episode"]]
+            schema (db/relationships->schema relationships)
+            docs [{:id 1
+                   :type "level"
+                   :episode-id 10}
+                  {:id 2
+                   :type "level"
+                   :episode-id 20}
+                  {:id 10
+                   :type "episode"}
+                  {:id 20
+                   :type "episode"}]]
 
-          ; TODO
-          ))
-
-
-      (testing "embedded"
-        (let [schema {}
-              conn (db/init! schema)
-              docs [{:id 1
-                     :name "Artist"
-                     :type "episode"
-                     :levels [{:id 2
-                               :name "Colors 1"
-                               :type "level"}]}]]
-
-
-          ; TODO
-          )))
-
-
-    )
-
+        (is (= (db/docs->txs relationships docs)
+               [[:db/add 1 :type "level"]
+                [:db/add 1 :rel/episode-level 10]
+                [:db/add 2 :type "level"]
+                [:db/add 2 :rel/episode-level 20]
+                [:db/add 10 :type "episode"]
+                [:db/add 20 :type "episode"]])))))
 
   (testing "update-rel-keys"
 

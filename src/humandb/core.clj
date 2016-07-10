@@ -52,6 +52,10 @@
   (let [sorted-keys (sort [rel-1 rel-2])]
     (keyword "rel" (string/join "-" sorted-keys))))
 
+(defn eavs->txs [eavs]
+  (map (fn [[eid attr val]]
+         [:db/add eid attr val]) eavs))
+
 (defn update-rel-keys
   "given a key, returns the correspoding relationship key, if any
    ex. episode-id -> rel/episode-level"
@@ -91,12 +95,8 @@
                        [[eid (rels->rel-key (doc :type) rel-type) value]])
                      [[eid attr value]]))))))
 
-(defn eavs->txs [eavs]
-  (map (fn [[eid attr val]]
-         [:db/add eid attr val]) eavs))
-
-(defn import-doc [conn doc]
-  (d/transact! conn [doc]))
+(defn docs->txs [relationships docs]
+  (mapcat (comp eavs->txs (partial update-rel-keys relationships)) docs))
 
 (defn schema->lookup [schema]
   (reduce (fn [lookup [k _]]
@@ -110,9 +110,8 @@
           {}
           schema))
 
-(defn import-docs [conn docs]
-  (doseq [doc docs]
-    (import-doc conn doc)))
+(defn import-docs [conn relationships docs]
+  (d/transact! conn (docs->txs relationships docs)))
 
 (defn relationships->schema [relationships]
   (reduce (fn [schema r]
