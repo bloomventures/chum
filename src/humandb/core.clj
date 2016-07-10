@@ -91,6 +91,10 @@
                        [[eid (rels->rel-key (doc :type) rel-type) value]])
                      [[eid attr value]]))))))
 
+(defn eavs->txs [eavs]
+  (map (fn [[eid attr val]]
+         [:db/add eid attr val]) eavs))
+
 (defn import-doc [conn doc]
   (d/transact! conn [doc]))
 

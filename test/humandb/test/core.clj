@@ -186,4 +186,15 @@
       (is (= (db/doc->eav doc)
              [[2 :name "Colors 1"]
               [2 :type "level"]
-              [2 :episode-id 1]])))))
+              [2 :episode-id 1]]))))
+
+  (testing "eavs->txs"
+    (let [eavs [[2 :name "Colors 1"]
+                [2 :type "level"]
+                [2 :episode-id 1]]]
+      (is (= (db/eavs->txs eavs)
+             [[:db/add 2 :name "Colors 1"]
+              [:db/add 2 :type "level"]
+              [:db/add 2 :episode-id 1]])))))
+
+
