@@ -25,15 +25,6 @@
 
         (is (= schema {:rel/aaa-zzz {:db/cardinality :db.cardinality/many}})))))
 
-  (testing "schema->lookup"
-    (let [schema {:rel/episode-level {:db/cardinality :db.cardinality/many}
-                  :rel/level-word {:db/cardinality :db.cardinality/many}}
-          result  {:episode #{:level}
-                   :level #{:word :episode}
-                   :word #{:level}}]
-      (is (= result (db/schema->lookup schema)))))
-
-
   (testing "import-docs"
     (testing "basic"
       (let [relationships []

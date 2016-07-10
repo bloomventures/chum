@@ -98,18 +98,6 @@
 (defn docs->txs [relationships docs]
   (mapcat (comp eavs->txs (partial update-rel-keys relationships)) docs))
 
-(defn schema->lookup [schema]
-  (reduce (fn [lookup [k _]]
-            (let [ks (-> k
-                         name
-                         (string/split #"-")
-                         (->> (map keyword)))]
-              (-> lookup
-                  (update-in [(first ks)] (fnil (fn [s] (conj s (last ks))) #{}))
-                  (update-in [(last ks)] (fnil (fn [s] (conj s (first ks))) #{})))))
-          {}
-          schema))
-
 (defn import-docs [conn relationships docs]
   (d/transact! conn (docs->txs relationships docs)))
 
