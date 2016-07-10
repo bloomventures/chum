@@ -63,28 +63,33 @@
                              memo))
                          {}
                          relationships)]
-  (->> doc
-       doc->eav
-       (map (fn [[eid attr value]]
-              (if-let [rel-type (rel-keys attr)]
-                (cond
-                  ; single object, ex. {:id 2}
-                  (map? value)
-                  [eid attr (value :id)]
-                  ; TODO also process object
+    (->> doc
+         doc->eav
+         (mapcat (fn [[eid attr value]]
+                   (if-let [rel-type (rel-keys attr)]
+                     (cond
+                       ; single object, ex. {:id 2}
+                       (map? value)
+                       (concat
+                         [[eid (rels->rel-key (doc :type) rel-type) (value :id)]]
+                         (update-rel-keys relationships value))
 
-                  ; list of objects, ex [{:id 1} {:id 2} ...]
-                  (and (coll? value) (map? (first value)))
-                  [] ;TODO process list of objects
+                       ; list of objects, ex [{:id 1} {:id 2} ...]
+                       (and (coll? value) (map? (first value)))
+                       (mapcat (fn [obj]
+                                 (concat
+                                   [[eid (rels->rel-key (doc :type) rel-type) (obj :id)]]
+                                   (update-rel-keys relationships obj))) value)
 
-                  ; list of ids, ex. [1 2 ...]
-                  (coll? value)
-                  [] ; TODO process list of ids
+                       ; list of ids, ex. [1 2 ...]
+                       (coll? value)
+                       (map (fn [rel-id]
+                              [eid (rels->rel-key (doc :type) rel-type) rel-id])  value)
 
-                  ; single id, ex. 2
-                  :else
-                  [eid (rels->rel-key (doc :type) rel-type) value])
-                [eid attr value]))))))
+                       ; single id, ex. 2
+                       :else
+                       [[eid (rels->rel-key (doc :type) rel-type) value]])
+                     [[eid attr value]]))))))
 
 (defn import-doc [conn doc]
   (d/transact! conn [doc]))

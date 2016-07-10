@@ -121,7 +121,7 @@
                  [1 :rel/episode-level 3]]))))
 
     (testing "id array"
-      (let [relationships [["level" "episode-id" "episode"]]
+      (let [relationships [["episode" "level-ids" "level"]]
             doc {:id 1
                  :type "episode"
                  :level-ids [2 3]}]
@@ -131,20 +131,52 @@
                 [1 :rel/episode-level 2]
                 [1 :rel/episode-level 3]]))))
 
+    (testing "single embedded"
+      (let [relationships [["episode" "level" "level"]]
+            doc {:id 1
+                 :type "episode"
+                 :level {:id 2
+                         :type "level"}}]
 
-    (testing "embedded"
-      (let [schema {}
-            conn (db/init! schema)
-            docs [{:id 1
-                   :name "Artist"
-                   :type "episode"
-                   :levels [{:id 2
-                             :name "Colors 1"
-                             :type "level"}]}]]
+        (is (= (db/update-rel-keys relationships doc)
+               [[1 :type "episode"]
+                [1 :rel/episode-level 2]
+                [2 :type "level"]]))))
 
 
-        ; TODO
-        )))
+    (testing "multiple embedded"
+      (let [relationships [["episode" "levels" "level"]]
+            doc {:id 1
+                 :type "episode"
+                 :levels [{:id 2
+                           :type "level"}
+                          {:id 3
+                           :type "level"}]}]
+
+        (is (= (db/update-rel-keys relationships doc)
+               [[1 :type "episode"]
+                [1 :rel/episode-level 2]
+                [2 :type "level"]
+                [1 :rel/episode-level 3]
+                [3 :type "level"]]))))
+
+
+    (testing "nested embedded"
+      (let [relationships [["episode" "level" "level"]
+                           ["level" "word" "word"]]
+            doc {:id 1
+                 :type "episode"
+                 :level {:id 2
+                         :type "level"
+                         :word {:id 3
+                                :type "word"}}}]
+
+        (is (= (db/update-rel-keys relationships doc)
+               [[1 :type "episode"]
+                [1 :rel/episode-level 2]
+                [2 :type "level"]
+                [2 :rel/level-word 3]
+                [3 :type "word"]])))))
 
   (testing "doc->eav"
     (let [doc  {:id 2
