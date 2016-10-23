@@ -11,17 +11,18 @@
 
 (deftest core-tests
 
-  (testing "relationships->schema"
+  ; deprecated
+  (testing "relationships->datascript-schema"
     (let [relationships [["episode" "..." "level"]
                          ["level" "..." "word"]]
-          schema (db/relationships->schema relationships)]
+          schema (db/relationships->datascript-schema relationships)]
 
       (is (= schema {:rel/episode-level {:db/cardinality :db.cardinality/many}
                      :rel/level-word {:db/cardinality :db.cardinality/many}})))
 
     (testing "relationship keys are in alpha order"
       (let [relationships [["zzz" "..." "aaa"]]
-            schema (db/relationships->schema relationships)]
+            schema (db/relationships->datascript-schema relationships)]
 
         (is (= schema {:rel/aaa-zzz {:db/cardinality :db.cardinality/many}})))))
 
@@ -48,7 +49,7 @@
                            ["level", "word-ids", "word"]
                            ["translation", "variation-id", "variation"]
                            ["translation", "word-id", "word"]]
-            schema (db/relationships->schema relationships)
+            schema (db/relationships->datascript-schema relationships)
             conn (db/init! schema)
             docs [{:name "Artist"
                    :type "episode"
@@ -83,7 +84,7 @@
   (testing "docs->txs"
     (testing "foreign key"
       (let [relationships [["level" "episode-id" "episode"]]
-            schema (db/relationships->schema relationships)
+            schema (db/relationships->datascript-schema relationships)
             docs [{:id 1
                    :type "level"
                    :episode-id 10}
@@ -107,7 +108,7 @@
 
     (testing "foreign key"
       (let [relationships [["level" "episode-id" "episode"]]
-            schema (db/relationships->schema relationships)
+            schema (db/relationships->datascript-schema relationships)
             doc {:id 1
                  :type "level"
                  :episode-id 3}]

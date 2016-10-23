@@ -101,7 +101,7 @@
 (defn import-docs [conn relationships docs]
   (d/transact! conn (docs->txs relationships docs)))
 
-(defn relationships->schema [relationships]
+(defn relationships->datascript-schema [relationships]
   (reduce (fn [schema r]
             (assoc schema
               (rels->rel-key (first r) (last r))
