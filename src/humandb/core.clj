@@ -48,51 +48,49 @@
           []
           doc))
 
-(defn rels->rel-key [rel-1 rel-2]
-  (let [sorted-keys (sort [rel-1 rel-2])]
-    (keyword "rel" (string/join "-" sorted-keys))))
-
 (defn eavs->txs [eavs]
   (map (fn [[eid attr val]]
          [:db/add eid attr val]) eavs))
 
 (defn doc->eav
-  "given a key, returns the correspoding relationship key, if any
-   ex. episode-id -> rel/episode-level"
+  "given a document, returns the eav
+
+  {:foo 1} -> [[123 :foo 1]]"
   [relationships doc]
 
-  (let [rel-keys (reduce (fn [memo [type attr rel-type]]
-                           (if (= type (doc :type))
-                             (assoc memo (keyword attr) rel-type)
-                             memo))
-                         {}
-                         relationships)]
+  (let [attr-is-a-rel-key?
+        (reduce (fn [memo [type attr rel-type]]
+                  (if (= type (doc :type))
+                    (assoc memo (keyword attr) rel-type)
+                    memo))
+                {}
+                relationships)]
     (->> doc
          doc->raw-eav
          (mapcat (fn [[eid attr value]]
-                   (if-let [rel-type (rel-keys attr)]
+                   (if (attr-is-a-rel-key? attr)
                      (cond
                        ; single object, ex. {:id 2}
                        (map? value)
                        (concat
-                         [[eid (rels->rel-key (doc :type) rel-type) (value :id)]]
+                         [[eid attr (value :id)]]
                          (doc->eav relationships value))
 
                        ; list of objects, ex [{:id 1} {:id 2} ...]
                        (and (coll? value) (map? (first value)))
                        (mapcat (fn [obj]
                                  (concat
-                                   [[eid (rels->rel-key (doc :type) rel-type) (obj :id)]]
+                                   [[eid attr (obj :id)]]
                                    (doc->eav relationships obj))) value)
 
                        ; list of ids, ex. [1 2 ...]
                        (coll? value)
                        (map (fn [rel-id]
-                              [eid (rels->rel-key (doc :type) rel-type) rel-id])  value)
+                              [eid attr rel-id]) value)
 
                        ; single id, ex. 2
                        :else
-                       [[eid (rels->rel-key (doc :type) rel-type) value]])
+                       [[eid attr value]])
                      [[eid attr value]]))))))
 
 (defn docs->txs [relationships docs]
@@ -104,8 +102,8 @@
 (defn relationships->datascript-schema [relationships]
   (reduce (fn [schema r]
             (assoc schema
-              (rels->rel-key (first r) (last r))
-              {:db/cardinality :db.cardinality/many}))
+                   (keyword (second r))
+                   {:db/cardinality :db.cardinality/many}))
           {}
           relationships))
 

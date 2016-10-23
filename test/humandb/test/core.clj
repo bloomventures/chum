@@ -13,18 +13,12 @@
 
   ; deprecated
   (testing "relationships->datascript-schema"
-    (let [relationships [["episode" "..." "level"]
-                         ["level" "..." "word"]]
+    (let [relationships [["episode" "episode-id" "level"]
+                         ["level" "level-id" "word"]]
           schema (db/relationships->datascript-schema relationships)]
 
-      (is (= schema {:rel/episode-level {:db/cardinality :db.cardinality/many}
-                     :rel/level-word {:db/cardinality :db.cardinality/many}})))
-
-    (testing "relationship keys are in alpha order"
-      (let [relationships [["zzz" "..." "aaa"]]
-            schema (db/relationships->datascript-schema relationships)]
-
-        (is (= schema {:rel/aaa-zzz {:db/cardinality :db.cardinality/many}})))))
+      (is (= schema {:episode-id {:db/cardinality :db.cardinality/many}
+                     :level-id {:db/cardinality :db.cardinality/many}}))))
 
   (testing "import-docs"
     (testing "basic"
@@ -74,10 +68,10 @@
         (is (= "Artist" (first (db/q '[:find [?name]
                                        :where
                                        [?variation-id :name "fr-ca"]
-                                       [?translation-id :rel/translation-variation ?variation-id]
-                                       [?translation-id :rel/translation-word ?word-id]
-                                       [?level-id :rel/level-word ?word-id]
-                                       [?episode-id :rel/episode-level ?level-id]
+                                       [?translation-id :variation-id ?variation-id]
+                                       [?translation-id :word-id ?word-id]
+                                       [?level-id :word-ids ?word-id]
+                                       [?episode-id :levels ?level-id]
                                        [?episode-id :name ?name]]
                                   @conn)))))))
 
@@ -98,9 +92,9 @@
 
         (is (= (db/docs->txs relationships docs)
                [[:db/add 1 :type "level"]
-                [:db/add 1 :rel/episode-level 10]
+                [:db/add 1 :episode-id 10]
                 [:db/add 2 :type "level"]
-                [:db/add 2 :rel/episode-level 20]
+                [:db/add 2 :episode-id 20]
                 [:db/add 10 :type "episode"]
                 [:db/add 20 :type "episode"]])))))
 
@@ -115,7 +109,7 @@
 
          (is (= (db/doc->eav relationships doc)
                 [[1 :type "level"]
-                 [1 :rel/episode-level 3]]))))
+                 [1 :episode-id 3]]))))
 
     (testing "id array"
       (let [relationships [["episode" "level-ids" "level"]]
@@ -125,8 +119,8 @@
 
         (is (= (db/doc->eav relationships doc)
                [[1 :type "episode"]
-                [1 :rel/episode-level 2]
-                [1 :rel/episode-level 3]]))))
+                [1 :level-ids 2]
+                [1 :level-ids 3]]))))
 
     (testing "single embedded"
       (let [relationships [["episode" "level" "level"]]
@@ -137,7 +131,7 @@
 
         (is (= (db/doc->eav relationships doc)
                [[1 :type "episode"]
-                [1 :rel/episode-level 2]
+                [1 :level 2]
                 [2 :type "level"]]))))
 
 
@@ -152,9 +146,9 @@
 
         (is (= (db/doc->eav relationships doc)
                [[1 :type "episode"]
-                [1 :rel/episode-level 2]
+                [1 :levels 2]
                 [2 :type "level"]
-                [1 :rel/episode-level 3]
+                [1 :levels 3]
                 [3 :type "level"]]))))
 
 
@@ -170,9 +164,9 @@
 
         (is (= (db/doc->eav relationships doc)
                [[1 :type "episode"]
-                [1 :rel/episode-level 2]
+                [1 :level 2]
                 [2 :type "level"]
-                [2 :rel/level-word 3]
+                [2 :word 3]
                 [3 :type "word"]])))))
 
   (testing "doc->raw-eav"
