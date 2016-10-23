@@ -103,7 +103,7 @@
                 [:db/add 10 :type "episode"]
                 [:db/add 20 :type "episode"]])))))
 
-  (testing "update-rel-keys"
+  (testing "doc->eav"
 
     (testing "foreign key"
       (let [relationships [["level" "episode-id" "episode"]]
@@ -112,7 +112,7 @@
                  :type "level"
                  :episode-id 3}]
 
-         (is (= (db/update-rel-keys relationships doc)
+         (is (= (db/doc->eav relationships doc)
                 [[1 :type "level"]
                  [1 :rel/episode-level 3]]))))
 
@@ -122,7 +122,7 @@
                  :type "episode"
                  :level-ids [2 3]}]
 
-        (is (= (db/update-rel-keys relationships doc)
+        (is (= (db/doc->eav relationships doc)
                [[1 :type "episode"]
                 [1 :rel/episode-level 2]
                 [1 :rel/episode-level 3]]))))
@@ -134,7 +134,7 @@
                  :level {:id 2
                          :type "level"}}]
 
-        (is (= (db/update-rel-keys relationships doc)
+        (is (= (db/doc->eav relationships doc)
                [[1 :type "episode"]
                 [1 :rel/episode-level 2]
                 [2 :type "level"]]))))
@@ -149,7 +149,7 @@
                           {:id 3
                            :type "level"}]}]
 
-        (is (= (db/update-rel-keys relationships doc)
+        (is (= (db/doc->eav relationships doc)
                [[1 :type "episode"]
                 [1 :rel/episode-level 2]
                 [2 :type "level"]
@@ -167,19 +167,19 @@
                          :word {:id 3
                                 :type "word"}}}]
 
-        (is (= (db/update-rel-keys relationships doc)
+        (is (= (db/doc->eav relationships doc)
                [[1 :type "episode"]
                 [1 :rel/episode-level 2]
                 [2 :type "level"]
                 [2 :rel/level-word 3]
                 [3 :type "word"]])))))
 
-  (testing "doc->eav"
+  (testing "doc->raw-eav"
     (let [doc  {:id 2
                 :name "Colors 1"
                 :type "level"
                 :episode-id 1}]
-      (is (= (db/doc->eav doc)
+      (is (= (db/doc->raw-eav doc)
              [[2 :name "Colors 1"]
               [2 :type "level"]
               [2 :episode-id 1]]))))

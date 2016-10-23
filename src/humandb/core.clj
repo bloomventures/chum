@@ -40,7 +40,7 @@
                    (filter fs/file?))]
     (mapcat parse-data-file files)))
 
-(defn doc->eav [doc]
+(defn doc->raw-eav [doc]
   (reduce (fn [memo [k v]]
             (if (= k :id)
               memo
@@ -56,7 +56,7 @@
   (map (fn [[eid attr val]]
          [:db/add eid attr val]) eavs))
 
-(defn update-rel-keys
+(defn doc->eav
   "given a key, returns the correspoding relationship key, if any
    ex. episode-id -> rel/episode-level"
   [relationships doc]
@@ -68,7 +68,7 @@
                          {}
                          relationships)]
     (->> doc
-         doc->eav
+         doc->raw-eav
          (mapcat (fn [[eid attr value]]
                    (if-let [rel-type (rel-keys attr)]
                      (cond
@@ -76,14 +76,14 @@
                        (map? value)
                        (concat
                          [[eid (rels->rel-key (doc :type) rel-type) (value :id)]]
-                         (update-rel-keys relationships value))
+                         (doc->eav relationships value))
 
                        ; list of objects, ex [{:id 1} {:id 2} ...]
                        (and (coll? value) (map? (first value)))
                        (mapcat (fn [obj]
                                  (concat
                                    [[eid (rels->rel-key (doc :type) rel-type) (obj :id)]]
-                                   (update-rel-keys relationships obj))) value)
+                                   (doc->eav relationships obj))) value)
 
                        ; list of ids, ex. [1 2 ...]
                        (coll? value)
@@ -96,7 +96,7 @@
                      [[eid attr value]]))))))
 
 (defn docs->txs [relationships docs]
-  (mapcat (comp eavs->txs (partial update-rel-keys relationships)) docs))
+  (mapcat (comp eavs->txs (partial doc->eav relationships)) docs))
 
 (defn import-docs [conn relationships docs]
   (d/transact! conn (docs->txs relationships docs)))
