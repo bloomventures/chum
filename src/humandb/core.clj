@@ -1,8 +1,7 @@
 (ns humandb.core
-  (:require [yaml.core :as yaml]
-            [me.raynes.fs :as fs]
-            [datascript.core :as d]
-            [clojure.string :as string]))
+  (:require
+    [datascript.core :as d]
+    [cljs-uuid.core :as uuid]))
 
 (defn tee [x]
   (println x)
@@ -12,33 +11,6 @@
   (d/create-conn schema))
 
 (def q d/q)
-
-(defmulti parse-data-file
-  (fn [path]
-    (let [file (fs/file path)
-          ext  (-> (fs/extension file)
-                   (string/replace-first #"." ""))]
-      (keyword ext))))
-
-(defmethod parse-data-file :yaml
-  [path]
-  (let [file (fs/file path)
-        data (slurp file)
-        docs (-> data
-                 (string/split #"---")
-                 (->>
-                   (remove string/blank?)
-                   (map yaml/parse-string)))]
-    docs))
-
-(defn read-schema [root-path]
-  (first (parse-data-file (str root-path "/schema.yaml"))))
-
-(defn read-data [root-path]
-  (let [directory (fs/file (str root-path "/data"))
-        files (->> (file-seq directory)
-                   (filter fs/file?))]
-    (mapcat parse-data-file files)))
 
 (defn ^:dynamic generate-id []
   (uuid/make-random))
@@ -109,4 +81,3 @@
           {}
           relationships))
 
-(defn read-db [config] )
