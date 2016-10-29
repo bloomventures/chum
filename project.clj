@@ -2,7 +2,8 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [io.forward/yaml "1.0.3"]
                  [datascript "0.15.0"]
-                 [me.raynes/fs "1.4.6"]]
+                 [me.raynes/fs "1.4.6"]
+                 [cljs-uuid "0.0.4"]]
 
   :source-paths ["src"]
 

@@ -41,7 +41,7 @@
     (mapcat parse-data-file files)))
 
 (defn ^:dynamic generate-id []
-  (rand-int 100000))
+  (uuid/make-random))
 
 (defn doc->raw-eav [doc]
   (let [id (generate-id)]
