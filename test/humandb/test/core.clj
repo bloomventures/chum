@@ -47,6 +47,29 @@
                                     [?e :name ?name]]
                                   @conn))))))
 
+    (testing "string ids"
+      (let [relationships [["user", "friend-id", "user"]]
+            schema (db/relationships->datascript-schema relationships)
+            conn (db/init! schema)
+            docs [{:name "Alice"
+                   :id "alice"
+                   :type "user"
+                   :friend-id "bob"}
+                  {:name "Bob"
+                   :id "bob"
+                   :type "user"}]]
+
+        (db/import-docs conn relationships docs)
+
+        (is (= "Bob" (first (db/q '[:find [?name]
+                                    :where
+                                    [?a :name "Alice"]
+                                    [?a :friend-id ?b-id]
+                                    [?b :id ?b-id]
+                                    [?b :name ?name]]
+                                  @conn))))))
+
+
     (testing "evil"
       (let [relationships [["episode", "levels", "level"]
                            ["level", "word-ids", "word"]
