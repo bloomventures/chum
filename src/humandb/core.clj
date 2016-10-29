@@ -40,13 +40,15 @@
                    (filter fs/file?))]
     (mapcat parse-data-file files)))
 
+(defn ^:dynamic generate-id []
+  (rand-int 100000))
+
 (defn doc->raw-eav [doc]
-  (reduce (fn [memo [k v]]
-            (if (= k :id)
-              memo
-              (conj memo [(doc :id) k v])))
-          []
-          doc))
+  (let [id (generate-id)]
+    (reduce (fn [memo [k v]]
+              (conj memo [id k v]))
+            []
+            doc)))
 
 (defn eavs->txs [eavs]
   (map (fn [[eid attr val]]

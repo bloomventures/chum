@@ -9,17 +9,26 @@
 (def db-config
   {:path "./resources/penyo-data"})
 
-(deftest core-tests
+(defn mock-generate-id [t]
+  (binding [db/generate-id (let [id (atom 0)]
+                                 (fn []
+                                   (swap! id inc)
+                                   @id))]
+    (t)))
 
-  ; deprecated
+(use-fixtures :each mock-generate-id)
+
+(deftest relationships->datascript-schema
+
   (testing "relationships->datascript-schema"
     (let [relationships [["episode" "episode-id" "level"]
                          ["level" "level-id" "word"]]
           schema (db/relationships->datascript-schema relationships)]
 
       (is (= schema {:episode-id {:db/cardinality :db.cardinality/many}
-                     :level-id {:db/cardinality :db.cardinality/many}}))))
+                     :level-id {:db/cardinality :db.cardinality/many}})))))
 
+(deftest import-docs
   (testing "import-docs"
     (testing "basic"
       (let [relationships []
@@ -34,9 +43,9 @@
 
         (is (= "Bob" (first (db/q '[:find [?name]
                                     :where
-                                    [2 :name ?name]]
+                                    [?e :id 2]
+                                    [?e :name ?name]]
                                   @conn))))))
-
 
     (testing "evil"
       (let [relationships [["episode", "levels", "level"]
@@ -67,15 +76,19 @@
 
         (is (= "Artist" (first (db/q '[:find [?name]
                                        :where
-                                       [?variation-id :name "fr-ca"]
-                                       [?translation-id :variation-id ?variation-id]
-                                       [?translation-id :word-id ?word-id]
-                                       [?level-id :word-ids ?word-id]
-                                       [?episode-id :levels ?level-id]
-                                       [?episode-id :name ?name]]
-                                  @conn)))))))
+                                       [?variation :name "fr-ca"]
+                                       [?variation :id ?variation-id]
+                                       [?translation :variation-id ?variation-id]
+                                       [?translation :word-id ?word-id]
+                                       [?level :word-ids ?word-id]
+                                       [?level :id ?level-id]
+                                       [?episode :levels ?level-id]
+                                       [?episode :name ?name]]
+                                     @conn))))))))
 
+(deftest docs->txs
   (testing "docs->txs"
+
     (testing "foreign key"
       (let [relationships [["level" "episode-id" "episode"]]
             schema (db/relationships->datascript-schema relationships)
@@ -91,25 +104,32 @@
                    :type "episode"}]]
 
         (is (= (db/docs->txs relationships docs)
-               [[:db/add 1 :type "level"]
+               [[:db/add 1 :id 1]
+                [:db/add 1 :type "level"]
                 [:db/add 1 :episode-id 10]
+                [:db/add 2 :id 2]
                 [:db/add 2 :type "level"]
                 [:db/add 2 :episode-id 20]
-                [:db/add 10 :type "episode"]
-                [:db/add 20 :type "episode"]])))))
+                [:db/add 3 :id 10]
+                [:db/add 3 :type "episode"]
+                [:db/add 4 :id 20]
+                [:db/add 4 :type "episode"]]))))))
+
+(deftest doc->eav
 
   (testing "doc->eav"
 
     (testing "foreign key"
       (let [relationships [["level" "episode-id" "episode"]]
             schema (db/relationships->datascript-schema relationships)
-            doc {:id 1
+            doc {:id 100
                  :type "level"
-                 :episode-id 3}]
+                 :episode-id 300}]
 
-         (is (= (db/doc->eav relationships doc)
-                [[1 :type "level"]
-                 [1 :episode-id 3]]))))
+        (is (= (db/doc->eav relationships doc)
+               [[1 :id 100]
+                [1 :type "level"]
+                [1 :episode-id 300]]))))
 
     (testing "id array"
       (let [relationships [["episode" "level-ids" "level"]]
@@ -118,9 +138,10 @@
                  :level-ids [2 3]}]
 
         (is (= (db/doc->eav relationships doc)
-               [[1 :type "episode"]
-                [1 :level-ids 2]
-                [1 :level-ids 3]]))))
+               [[2 :id 1]
+                [2 :type "episode"]
+                [2 :level-ids 2]
+                [2 :level-ids 3]]))))
 
     (testing "single embedded"
       (let [relationships [["episode" "level" "level"]]
@@ -130,9 +151,11 @@
                          :type "level"}}]
 
         (is (= (db/doc->eav relationships doc)
-               [[1 :type "episode"]
-                [1 :level 2]
-                [2 :type "level"]]))))
+               [[3 :id 1]
+                [3 :type "episode"]
+                [3 :level 2]
+                [4 :id 2]
+                [4 :type "level"]]))))
 
 
     (testing "multiple embedded"
@@ -145,11 +168,14 @@
                            :type "level"}]}]
 
         (is (= (db/doc->eav relationships doc)
-               [[1 :type "episode"]
-                [1 :levels 2]
-                [2 :type "level"]
-                [1 :levels 3]
-                [3 :type "level"]]))))
+               [[5 :id 1]
+                [5 :type "episode"]
+                [5 :levels 2]
+                [6 :id 2]
+                [6 :type "level"]
+                [5 :levels 3]
+                [7 :id 3]
+                [7 :type "level"]]))))
 
 
     (testing "nested embedded"
@@ -163,22 +189,28 @@
                                 :type "word"}}}]
 
         (is (= (db/doc->eav relationships doc)
-               [[1 :type "episode"]
-                [1 :level 2]
-                [2 :type "level"]
-                [2 :word 3]
-                [3 :type "word"]])))))
+               [[8 :id 1]
+                [8 :type "episode"]
+                [8 :level 2]
+                [9 :id 2]
+                [9 :type "level"]
+                [9 :word 3]
+                [10 :id 3]
+                [10 :type "word"]]))))))
 
+(deftest doc->raw-eav
   (testing "doc->raw-eav"
     (let [doc  {:id 2
                 :name "Colors 1"
                 :type "level"
                 :episode-id 1}]
       (is (= (db/doc->raw-eav doc)
-             [[2 :name "Colors 1"]
-              [2 :type "level"]
-              [2 :episode-id 1]]))))
+             [[1 :id 2]
+              [1 :name "Colors 1"]
+              [1 :type "level"]
+              [1 :episode-id 1]])))))
 
+(deftest eavs->txs
   (testing "eavs->txs"
     (let [eavs [[2 :name "Colors 1"]
                 [2 :type "level"]
