@@ -3,8 +3,9 @@
     [datascript.core :as d]
     [cljs-uuid.core :as uuid]))
 
-
-(defn init! [schema]
+(defn init!
+  "creates a datascript database that needs to be passed in other functions"
+  [schema]
   (d/create-conn schema))
 
 (def q d/q)
