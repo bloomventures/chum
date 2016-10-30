@@ -1,9 +1,10 @@
 (ns humandb.core
   (:require
     [humandb.import :as import]
-    [humandb.io :as io]))
+    [humandb.io :as io]
+    [datascript.core :refer [q]]))
 
-(def query import/q)
+(def query q)
 
 (defn read-db [root-path]
   (let [schema-data (io/read-schema root-path)

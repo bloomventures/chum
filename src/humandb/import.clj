@@ -7,8 +7,6 @@
   [schema]
   (d/create-conn schema))
 
-(def q d/q)
-
 (defn ^:dynamic generate-id []
   (rand-int 50000000))
 

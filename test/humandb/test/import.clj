@@ -1,7 +1,8 @@
 (ns humandb.test.import
   (:require
     [clojure.test :refer :all]
-    [humandb.import :as db]))
+    [humandb.import :as db]
+    [datascript.core :as d]))
 
 (defn mock-generate-id [t]
   (binding [db/generate-id (let [id (atom 0)]
@@ -35,10 +36,10 @@
 
         (db/import-docs conn relationships docs)
 
-        (is (= "Bob" (first (db/q '[:find [?name]
-                                    :where
-                                    [?e :id 2]
-                                    [?e :name ?name]]
+        (is (= "Bob" (first (d/q '[:find [?name]
+                                   :where
+                                   [?e :id 2]
+                                   [?e :name ?name]]
                               @conn))))))
 
     (testing "string ids"
@@ -55,12 +56,12 @@
 
         (db/import-docs conn relationships docs)
 
-        (is (= "Bob" (first (db/q '[:find [?name]
-                                    :where
-                                    [?a :name "Alice"]
-                                    [?a :friend-id ?b-id]
-                                    [?b :id ?b-id]
-                                    [?b :name ?name]]
+        (is (= "Bob" (first (d/q '[:find [?name]
+                                   :where
+                                   [?a :name "Alice"]
+                                   [?a :friend-id ?b-id]
+                                   [?b :id ?b-id]
+                                   [?b :name ?name]]
                               @conn))))))
 
 
@@ -91,16 +92,16 @@
 
         (db/import-docs conn relationships docs)
 
-        (is (= "Artist" (first (db/q '[:find [?name]
-                                       :where
-                                       [?variation :name "fr-ca"]
-                                       [?variation :id ?variation-id]
-                                       [?translation :variation-id ?variation-id]
-                                       [?translation :word-id ?word-id]
-                                       [?level :word-ids ?word-id]
-                                       [?level :id ?level-id]
-                                       [?episode :levels ?level-id]
-                                       [?episode :name ?name]]
+        (is (= "Artist" (first (d/q '[:find [?name]
+                                      :where
+                                      [?variation :name "fr-ca"]
+                                      [?variation :id ?variation-id]
+                                      [?translation :variation-id ?variation-id]
+                                      [?translation :word-id ?word-id]
+                                      [?level :word-ids ?word-id]
+                                      [?level :id ?level-id]
+                                      [?episode :levels ?level-id]
+                                      [?episode :name ?name]]
                                  @conn))))))))
 
 (deftest docs->txs
