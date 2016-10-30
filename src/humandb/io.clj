@@ -22,9 +22,6 @@
                    (map yaml/parse-string)))]
     docs))
 
-(defn read-schema [root-path]
-  (first (parse-data-file (str root-path "/schema.yaml"))))
-
 (defn read-data
   "Given a directory, parses all files as yaml (including subfiles)"
   [root-path]
@@ -33,11 +30,5 @@
                    (filter fs/file?))]
     (mapcat parse-data-file files)))
 
-(defn read-db [root-path]
-  ; read the schema
-  ; read the data
-  ; import data
-  ; do a little dance
-
-
-  )
+(defn read-schema [root-path]
+  (first (parse-data-file (str root-path "/schema.yaml"))))

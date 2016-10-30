@@ -1,0 +1,2 @@
+relationships:
+  - [sculpture, artist-ids, artist]
