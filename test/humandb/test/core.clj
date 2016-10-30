@@ -3,7 +3,7 @@
     [clojure.test :refer :all]
     [humandb.core :as humandb]))
 
-(def end-to-end-test
+(deftest end-to-end-test
   (testing "reading test_data"
     (let [db (humandb/read-db "./resources/test_data")]
       (is (= (set ["Sculpture 1" "Sculpture 2"])
