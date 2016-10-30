@@ -3,9 +3,6 @@
     [datascript.core :as d]
     [cljs-uuid.core :as uuid]))
 
-(defn tee [x]
-  (println x)
-  x)
 
 (defn init! [schema]
   (d/create-conn schema))
