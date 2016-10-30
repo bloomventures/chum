@@ -109,7 +109,6 @@
 
     (testing "foreign key"
       (let [relationships [["level" "episode-id" "episode"]]
-            schema (db/relationships->datascript-schema relationships)
             docs [{:id 1
                    :type "level"
                    :episode-id 10}
@@ -139,7 +138,6 @@
 
     (testing "foreign key"
       (let [relationships [["level" "episode-id" "episode"]]
-            schema (db/relationships->datascript-schema relationships)
             doc {:id 100
                  :type "level"
                  :episode-id 300}]
