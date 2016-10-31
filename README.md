@@ -124,5 +124,6 @@ github for data (human-db)
 
 ### Contributors
 
-- @rafd
-- @10plusY
+- [@rafd](https://github.com/rafd)
+- [@10plusY](https://github.com/10plusY)
+- [@laucliff](https://github.com/laucliff)
