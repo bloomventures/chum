@@ -7,6 +7,11 @@
     [java.nio.file Paths]
     [java.net URI]))
 
+(defn relativize [path-1 path-2]
+  (let [path-1 (Paths/get (URI. (str "file://" (.getPath (fs/file path-1)))))
+        path-2 (Paths/get (URI. (str "file://" (.getPath (fs/file path-2)))))]
+    (.toString (.relativize path-1 path-2))))
+
 (defn annotate-with-src [doc src]
   (-> (reduce (fn [doc [k v]]
                 (assoc doc k
@@ -27,9 +32,7 @@
 (defn parse-data-file
   [path root-path]
   (let [file (fs/file path)
-        path-1 (Paths/get (URI. (str "file://" (.getPath file))))
-        path-2 (Paths/get (URI. (str "file://" (.getPath (fs/file root-path)))))
-        filename (.toString (.relativize path-2 path-1))
+        filename (relativize root-path path)
         data (slurp file)
         docs (-> data
                  (string/split #"---")
