@@ -2,49 +2,57 @@
   (:require
     [yaml.core :as yaml]
     [me.raynes.fs :as fs]
-    [clojure.string :as string]))
+    [clojure.string :as string])
+  (:import
+    [java.nio.file Paths]
+    [java.net URI]))
 
-(defmulti parse-data-file
-  (fn [path]
-    (let [file (fs/file path)
-          ext  (-> (fs/extension file)
-                   (string/replace-first #"." ""))]
-      (keyword ext))))
-
-(defn annotate-with-src [doc]
+(defn annotate-with-src [doc src]
   (-> (reduce (fn [doc [k v]]
                 (assoc doc k
                   (cond
                     (map? v)
-                    (annotate-with-src v)
+                    (annotate-with-src v (conj src k))
 
                     (and (vector? v) (map? (first v)))
-                    (map annotate-with-src v)
+                    (map-indexed (fn [i doc]
+                                   (annotate-with-src doc (conj src k i))) v)
 
                     :else
                     v)))
               {}
               doc)
-      (assoc :__src__ "TODO")))
+      (assoc :__src__ src)))
 
-(defmethod parse-data-file :yaml
-  [path]
+(defn parse-data-file
+  [path root-path]
   (let [file (fs/file path)
+        path-1 (Paths/get (URI. (str "file://" (.getPath file))))
+        path-2 (Paths/get (URI. (str "file://" (.getPath (fs/file root-path)))))
+        filename (.toString (.relativize path-2 path-1))
         data (slurp file)
         docs (-> data
                  (string/split #"---")
                  (->>
                    (remove string/blank?)
-                   (map yaml/parse-string)))]
+                   (map yaml/parse-string)
+                   (map-indexed (fn [i doc] (annotate-with-src doc [filename i])))))]
     docs))
+
+(defn parse-schema-file
+  [path]
+  (-> path
+      fs/file
+      slurp
+      yaml/parse-string))
 
 (defn read-data
   "Given a directory, parses all files as yaml (including subfiles)"
   [root-path]
-  (let [directory (fs/file (str root-path "/data"))
-        files (->> (file-seq directory)
+  (let [data-dir (fs/file (str root-path "/data"))
+        files (->> (file-seq data-dir)
                    (filter fs/file?))]
-    (mapcat parse-data-file files)))
+    (mapcat (fn [f] (parse-data-file f data-dir)) files)))
 
 (defn read-schema [root-path]
-  (first (parse-data-file (str root-path "/schema.yaml"))))
+  (parse-schema-file (str root-path "/schema.yaml")))
