@@ -7,8 +7,11 @@
   [schema]
   (d/create-conn schema))
 
-(defn ^:dynamic generate-id []
-  (rand-int 50000000))
+(def ^:dynamic generate-id
+  (let [id (atom 0)]
+    (fn []
+      (swap! id inc)
+      @id)))
 
 (defn doc->raw-eav [doc]
   (let [id (generate-id)]
