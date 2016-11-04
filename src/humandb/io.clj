@@ -31,16 +31,15 @@
 
 (defn parse-data-file
   [path root-path]
-  (let [file (fs/file path)
-        filename (relativize root-path path)
-        data (slurp file)
-        docs (-> data
-                 (string/split #"---")
-                 (->>
-                   (remove string/blank?)
-                   (map yaml/parse-string)
-                   (map-indexed (fn [i doc] (annotate-with-src doc [filename i])))))]
-    docs))
+  (-> path
+      fs/file
+      slurp
+      (string/split #"---")
+      (->>
+        (remove string/blank?)
+        (map yaml/parse-string)
+        (map-indexed (fn [i doc]
+                       (annotate-with-src doc [(relativize root-path path) i]))))))
 
 (defn parse-schema-file
   [path]
