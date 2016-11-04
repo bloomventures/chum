@@ -11,6 +11,22 @@
                    (string/replace-first #"." ""))]
       (keyword ext))))
 
+(defn annotate-with-src [doc]
+  (-> (reduce (fn [doc [k v]]
+                (assoc doc k
+                  (cond
+                    (map? v)
+                    (annotate-with-src v)
+
+                    (and (vector? v) (map? (first v)))
+                    (map annotate-with-src v)
+
+                    :else
+                    v)))
+              {}
+              doc)
+      (assoc :__src__ "TODO")))
+
 (defmethod parse-data-file :yaml
   [path]
   (let [file (fs/file path)

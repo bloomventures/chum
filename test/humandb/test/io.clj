@@ -22,3 +22,27 @@
     (is (= {:relationships [["sculpture", "artist-ids", "artist"]] }
           (io/read-schema "./resources/test_data")))))
 
+
+(deftest annonate-with-src
+  (testing "annotates simple case"
+    (is (= {:__src__ "TODO" :id "foo"}
+          (io/annotate-with-src {:id "foo"}))))
+
+  (testing "annotates embedded"
+    (is (= {:__src__ "TODO"
+            :id "foo"
+            :embed {:__src__ "TODO"
+                    :id "bar"}}
+          (io/annotate-with-src {:id "foo"
+                                 :embed {:id "bar"}}))))
+
+  (testing "annonates array embedded"
+    (is (= {:__src__ "TODO"
+            :id "foo"
+            :embeds [{:__src__ "TODO"
+                      :id "bar"}
+                     {:__src__ "TODO"
+                      :id "baz"}]}
+          (io/annotate-with-src {:id "foo"
+                                 :embeds [{:id "bar"}
+                                          {:id "baz"}]})))))
