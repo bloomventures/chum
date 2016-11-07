@@ -2,9 +2,9 @@
   (:require
     [humandb.import :as import]
     [humandb.io :as io]
-    [datascript.core :refer [q]]))
+    [datascript.core :as d]))
 
-(def query q)
+(def query d/q)
 
 (defn read-db [root-path]
   (let [schema-data (io/read-schema root-path)
