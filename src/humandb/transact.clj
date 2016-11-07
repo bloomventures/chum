@@ -45,7 +45,7 @@
     (save-doc! conn parent-eid)
 
     (let [doc (get-doc conn eid)
-          location (:__src__ doc)]
+          location (:db/src doc)]
       (write! location (remove-metadata doc)))))
 
 (defn affected-docs [txs]

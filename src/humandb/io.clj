@@ -27,7 +27,7 @@
                     v)))
               {}
               doc)
-      (assoc :__src__ src)))
+      (assoc :db/src src)))
 
 (defn parse-data-file
   [path root-path]
