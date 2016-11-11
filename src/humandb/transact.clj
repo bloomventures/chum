@@ -34,9 +34,19 @@
                    (assoc memo k v)))
                {})))
 
-(defn get-parent [conn eid]
-  ; TODO
-  )
+(defn get-parent
+  "Returns eid of parent, if there is on, otherwise nil"
+  [conn eid]
+  (->> (d/q '[:find ?pid ?rel
+              :in $ ?eid
+              :where
+              [?eid :id ?id]
+              [?eid :db/embedded? true]
+              [?pid ?rel ?id]]
+         @conn
+         eid)
+       (remove (fn [r] (= :id (second r))))
+       ffirst))
 
 (defn save-doc!
   [conn eid]

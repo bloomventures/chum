@@ -2,6 +2,7 @@
   (:require
     [clojure.test :refer :all]
     [humandb.transact :as tx]
+    [humandb.import :as db]
     [datascript.core :as d]))
 
 (deftest affected-docs
@@ -59,3 +60,123 @@
                 :embed [{:attr "keep"}
                         {:attr "keep"}]}
                (tx/remove-metadata raw-attrs)))))))
+
+(deftest get-parent
+  (testing "returns parent"
+    (testing "when nested"
+      (let [relationships [["post", "comments", "comment"]]
+            schema (db/relationships->datascript-schema relationships)
+            conn (db/init! schema)
+            docs [{:type "post"
+                   :content "abcde"
+                   :id 1000
+                   :comments {:id 2000
+                               :content "foobar"
+                               :type "comment"}}
+                  {:type "post"
+                   :id 4000
+                   :content "zzzzz"}]]
+        (db/import-docs conn relationships docs)
+        (let [pid (first (d/q '[:find [?eid]
+                                :in $ ?id
+                                :where
+                                [?eid :id ?id]]
+                           @conn
+                           1000))
+              eid (first (d/q '[:find [?eid]
+                                :in $ ?id
+                                :where
+                                [?eid :id ?id]]
+                           @conn
+                           2000))]
+          (is (= pid
+                 (tx/get-parent conn eid))))))
+
+    (testing "when nested in array"
+      (let [relationships [["post", "comments", "comment"]]
+            schema (db/relationships->datascript-schema relationships)
+            conn (db/init! schema)
+            docs [{:type "post"
+                   :content "abcde"
+                   :id 1000
+                   :comments [{:id 2000
+                               :content "foobar"
+                               :type "comment"}
+                              {:id 3000
+                               :content "foobar"
+                               :type "comment"}]}
+                  {:type "post"
+                   :id 4000
+                   :content "zzzzz"}]]
+        (db/import-docs conn relationships docs)
+        (let [pid (first (d/q '[:find [?eid]
+                                :in $ ?id
+                                :where
+                                [?eid :id ?id]]
+                           @conn
+                           1000))
+              eid (first (d/q '[:find [?eid]
+                                :in $ ?id
+                                :where
+                                [?eid :id ?id]]
+                           @conn
+                           2000))]
+          (is (= pid
+                 (tx/get-parent conn eid))))))
+
+    (testing "when nested multiple levels deep"
+      (let [relationships [["post", "comments", "comment"]
+                           ["comment", "author", "author"]]
+            schema (db/relationships->datascript-schema relationships)
+            conn (db/init! schema)
+            docs [{:type "post"
+                   :content "abcde"
+                   :id 1000
+                   :comments [{:id 2000
+                               :content "foobar"
+                               :type "comment"
+                               :author {:id 4000
+                                        :type "author"
+                                        :email "foo@bar.com"}}]}]]
+        (db/import-docs conn relationships docs)
+        (let [pid (first (d/q '[:find [?eid]
+                                :in $ ?id
+                                :where
+                                [?eid :id ?id]]
+                           @conn
+                           2000))
+              eid (first (d/q '[:find [?eid]
+                                :in $ ?id
+                                :where
+                                [?eid :id ?id]]
+                           @conn
+                           4000))]
+          (is (= pid
+                 (tx/get-parent conn eid)))))))
+
+  (testing "does not return parent for docs that aren't embedded"
+    (let [relationships [["post", "comments", "comment"]]
+          schema (db/relationships->datascript-schema relationships)
+          conn (db/init! schema)
+          docs [{:type "post"
+                 :content "abcde"
+                 :id 1000
+                 :comments [2000 3000]}
+                {:id 2000
+                 :content "foobar"
+                 :type "comment"}
+                {:id 3000
+                 :content "foobar"
+                 :type "comment"}
+                {:type "post"
+                 :id 4000
+                 :content "zzzzz"}]]
+      (db/import-docs conn relationships docs)
+      (let [eid (first (d/q '[:find [?eid]
+                              :in $ ?id
+                              :where
+                              [?eid :id ?id]]
+                         @conn
+                         2000))]
+        (is (= nil
+               (tx/get-parent conn eid)))))))
