@@ -46,14 +46,14 @@
                     (map? value)
                     (concat
                       [[eid attr (value :id)]]
-                      (doc->eav relationships value))
+                      (doc->eav relationships (assoc value :db/embedded? true)))
 
                     ; list of objects, ex [{:id 1} {:id 2} ...]
                     (and (coll? value) (map? (first value)))
                     (mapcat (fn [obj]
                               (concat
                                 [[eid attr (obj :id)]]
-                                (doc->eav relationships obj))) value)
+                                (doc->eav relationships (assoc obj :db/embedded? true)))) value)
 
                     ; list of ids, ex. [1 2 ...]
                     (coll? value)

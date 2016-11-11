@@ -170,7 +170,8 @@
                 [3 :type "episode"]
                 [3 :level 2]
                 [4 :id 2]
-                [4 :type "level"]]
+                [4 :type "level"]
+                [4 :db/embedded? true]]
                (db/doc->eav relationships doc)))))
 
     (testing "multiple embedded"
@@ -187,9 +188,11 @@
                 [5 :levels 2]
                 [6 :id 2]
                 [6 :type "level"]
+                [6 :db/embedded? true]
                 [5 :levels 3]
                 [7 :id 3]
-                [7 :type "level"]]
+                [7 :type "level"]
+                [7 :db/embedded? true]]
                (db/doc->eav relationships doc)))))
 
 
@@ -203,15 +206,17 @@
                          :word {:id 3
                                 :type "word"}}}]
 
-        (is (= [[8 :id 1]
-                [8 :type "episode"]
-                [8 :level 2]
-                [9 :id 2]
-                [9 :type "level"]
-                [9 :word 3]
-                [10 :id 3]
-                [10 :type "word"]]
-               (db/doc->eav relationships doc)))))))
+        (is (= #{[8 :id 1]
+                 [8 :type "episode"]
+                 [8 :level 2]
+                 [9 :id 2]
+                 [9 :type "level"]
+                 [9 :word 3]
+                 [9 :db/embedded? true]
+                 [10 :id 3]
+                 [10 :type "word"]
+                 [10 :db/embedded? true]}
+               (set (db/doc->eav relationships doc))))))))
 
 (deftest doc->raw-eav
   (testing "doc->raw-eav"
