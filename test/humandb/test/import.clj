@@ -120,17 +120,17 @@
                   {:id 20
                    :type "episode"}]]
 
-        (is (= (db/docs->txs relationships docs)
-              [[:db/add 1 :id 1]
-               [:db/add 1 :type "level"]
-               [:db/add 1 :episode-id 10]
-               [:db/add 2 :id 2]
-               [:db/add 2 :type "level"]
-               [:db/add 2 :episode-id 20]
-               [:db/add 3 :id 10]
-               [:db/add 3 :type "episode"]
-               [:db/add 4 :id 20]
-               [:db/add 4 :type "episode"]]))))))
+        (is (= [[:db/add 1 :id 1]
+                [:db/add 1 :type "level"]
+                [:db/add 1 :episode-id 10]
+                [:db/add 2 :id 2]
+                [:db/add 2 :type "level"]
+                [:db/add 2 :episode-id 20]
+                [:db/add 3 :id 10]
+                [:db/add 3 :type "episode"]
+                [:db/add 4 :id 20]
+                [:db/add 4 :type "episode"]]
+               (db/docs->txs relationships docs)))))))
 
 (deftest doc->eav
 
@@ -142,10 +142,10 @@
                  :type "level"
                  :episode-id 300}]
 
-        (is (= (db/doc->eav relationships doc)
-              [[1 :id 100]
-               [1 :type "level"]
-               [1 :episode-id 300]]))))
+        (is (= [[1 :id 100]
+                [1 :type "level"]
+                [1 :episode-id 300]]
+              (db/doc->eav relationships doc)))))
 
     (testing "id array"
       (let [relationships [["episode" "level-ids" "level"]]
@@ -153,11 +153,11 @@
                  :type "episode"
                  :level-ids [2 3]}]
 
-        (is (= (db/doc->eav relationships doc)
-              [[2 :id 1]
-               [2 :type "episode"]
-               [2 :level-ids 2]
-               [2 :level-ids 3]]))))
+        (is (= [[2 :id 1]
+                [2 :type "episode"]
+                [2 :level-ids 2]
+                [2 :level-ids 3]]
+               (db/doc->eav relationships doc)))))
 
     (testing "single embedded"
       (let [relationships [["episode" "level" "level"]]
@@ -166,13 +166,12 @@
                  :level {:id 2
                          :type "level"}}]
 
-        (is (= (db/doc->eav relationships doc)
-              [[3 :id 1]
-               [3 :type "episode"]
-               [3 :level 2]
-               [4 :id 2]
-               [4 :type "level"]]))))
-
+        (is (= [[3 :id 1]
+                [3 :type "episode"]
+                [3 :level 2]
+                [4 :id 2]
+                [4 :type "level"]]
+               (db/doc->eav relationships doc)))))
 
     (testing "multiple embedded"
       (let [relationships [["episode" "levels" "level"]]
@@ -183,15 +182,15 @@
                           {:id 3
                            :type "level"}]}]
 
-        (is (= (db/doc->eav relationships doc)
-              [[5 :id 1]
-               [5 :type "episode"]
-               [5 :levels 2]
-               [6 :id 2]
-               [6 :type "level"]
-               [5 :levels 3]
-               [7 :id 3]
-               [7 :type "level"]]))))
+        (is (= [[5 :id 1]
+                [5 :type "episode"]
+                [5 :levels 2]
+                [6 :id 2]
+                [6 :type "level"]
+                [5 :levels 3]
+                [7 :id 3]
+                [7 :type "level"]]
+               (db/doc->eav relationships doc)))))
 
 
     (testing "nested embedded"
@@ -204,15 +203,15 @@
                          :word {:id 3
                                 :type "word"}}}]
 
-        (is (= (db/doc->eav relationships doc)
-              [[8 :id 1]
-               [8 :type "episode"]
-               [8 :level 2]
-               [9 :id 2]
-               [9 :type "level"]
-               [9 :word 3]
-               [10 :id 3]
-               [10 :type "word"]]))))))
+        (is (= [[8 :id 1]
+                [8 :type "episode"]
+                [8 :level 2]
+                [9 :id 2]
+                [9 :type "level"]
+                [9 :word 3]
+                [10 :id 3]
+                [10 :type "word"]]
+               (db/doc->eav relationships doc)))))))
 
 (deftest doc->raw-eav
   (testing "doc->raw-eav"
@@ -220,19 +219,19 @@
                 :name "Colors 1"
                 :type "level"
                 :episode-id 1}]
-      (is (= (db/doc->raw-eav doc)
-            [[1 :id 2]
-             [1 :name "Colors 1"]
-             [1 :type "level"]
-             [1 :episode-id 1]])))))
+      (is (= [[1 :id 2]
+              [1 :name "Colors 1"]
+              [1 :type "level"]
+              [1 :episode-id 1]]
+             (db/doc->raw-eav doc))))))
 
 (deftest eavs->txs
   (testing "eavs->txs"
     (let [eavs [[2 :name "Colors 1"]
                 [2 :type "level"]
                 [2 :episode-id 1]]]
-      (is (= (db/eavs->txs eavs)
-            [[:db/add 2 :name "Colors 1"]
-             [:db/add 2 :type "level"]
-             [:db/add 2 :episode-id 1]])))))
+      (is (= [[:db/add 2 :name "Colors 1"]
+              [:db/add 2 :type "level"]
+              [:db/add 2 :episode-id 1]]
+             (db/eavs->txs eavs))))))
 
