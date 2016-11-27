@@ -13,6 +13,6 @@
                                        [?artist :id ?artist-id]
                                        [?sculpture :artist-ids ?artist-id]
                                        [?sculpture :name ?sculpture-name]]
-                        @db)
+                        db)
                    (map first))))))))
 

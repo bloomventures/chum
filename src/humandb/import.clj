@@ -68,8 +68,8 @@
 (defn docs->txs [relationships docs]
   (mapcat (comp eavs->txs (partial doc->eav relationships)) docs))
 
-(defn import-docs [conn relationships docs]
-  (d/transact! conn (docs->txs relationships docs)))
+(defn import-docs [db docs]
+  (d/transact! (db :conn) (docs->txs (db :relationships) docs)))
 
 (defn relationships->datascript-schema [relationships]
   (reduce (fn [schema r]
@@ -78,4 +78,3 @@
               {:db/cardinality :db.cardinality/many}))
     {}
     relationships))
-

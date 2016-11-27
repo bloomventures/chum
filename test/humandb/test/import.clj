@@ -26,26 +26,27 @@
 (deftest import-docs
   (testing "import-docs"
     (testing "basic"
-      (let [relationships []
-            schema {}
-            conn (db/init! schema)
+      (let [schema {}
+            db {:conn (db/init! schema)
+                :relationships []}
             docs [{:name "Alice"
                    :id 1}
                   {:name "Bob"
                    :id 2}]]
 
-        (db/import-docs conn relationships docs)
+        (db/import-docs db docs)
 
         (is (= "Bob" (first (d/q '[:find [?name]
                                    :where
                                    [?e :id 2]
                                    [?e :name ?name]]
-                              @conn))))))
+                              @(db :conn)))))))
 
     (testing "string ids"
       (let [relationships [["user", "friend-id", "user"]]
             schema (db/relationships->datascript-schema relationships)
-            conn (db/init! schema)
+            db {:relationships relationships
+                :conn (db/init! schema)}
             docs [{:name "Alice"
                    :id "alice"
                    :type "user"
@@ -54,7 +55,7 @@
                    :id "bob"
                    :type "user"}]]
 
-        (db/import-docs conn relationships docs)
+        (db/import-docs db docs)
 
         (is (= "Bob" (first (d/q '[:find [?name]
                                    :where
@@ -62,7 +63,7 @@
                                    [?a :friend-id ?b-id]
                                    [?b :id ?b-id]
                                    [?b :name ?name]]
-                              @conn))))))
+                              @(db :conn)))))))
 
 
     (testing "evil"
@@ -71,7 +72,8 @@
                            ["translation", "variation-id", "variation"]
                            ["translation", "word-id", "word"]]
             schema (db/relationships->datascript-schema relationships)
-            conn (db/init! schema)
+            db {:conn (db/init! schema)
+                :relationships relationships}
             docs [{:name "Artist"
                    :type "episode"
                    :id 1
@@ -90,7 +92,7 @@
                    :type "word"
                    :name "green"}]]
 
-        (db/import-docs conn relationships docs)
+        (db/import-docs db docs)
 
         (is (= "Artist" (first (d/q '[:find [?name]
                                       :where
@@ -102,7 +104,7 @@
                                       [?level :id ?level-id]
                                       [?episode :levels ?level-id]
                                       [?episode :name ?name]]
-                                 @conn))))))))
+                                 @(db :conn)))))))))
 
 (deftest docs->txs
   (testing "docs->txs"

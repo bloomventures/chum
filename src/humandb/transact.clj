@@ -1,19 +1,45 @@
 (ns humandb.transact
   (:require
-    [datascript.core :as d]))
+    [datascript.core :as d]
+    [humandb.out :as out]))
 
-(defn write!
-  "Given location and doc, updates file with yaml doc"
-  [location doc]
-  ; TODO
-  )
+(defn tee [x]
+  (println x) x)
+
+(defn relationship? [db doc-type key]
+  (first (filter (fn [x]
+                   (and (= (first x) doc-type)
+                        (= (keyword (second x)) key)))
+                 (db :relationships))))
+
+(declare get-doc)
+
+(defn get-doc-by-id [db id]
+  (let [eid (first (d/q '[:find [?eid]
+                          :in $ ?id
+                          :where
+                          [?eid :id ?id]]
+                        @(db :conn)
+                        id))]
+    (get-doc db eid)))
 
 (defn get-doc
   "Given eid, returns doc containing all attributes (and embedded docs)"
-  [conn eid]
-  ; TODO, also get nested docs
-  ; will need to look up schema AND src to see if should embedded
-  (d/pull conn '[*] eid))
+  [db eid]
+  (let [raw-doc (d/pull @(db :conn) '[*] eid)]
+    (->> raw-doc
+         (reduce (fn [doc [k v]]
+                   (if (and (relationship? db (raw-doc :type) k)
+                            ;TODO child-doc embedded?
+                            ;TODO child-doc embeded-in-parent?
+                            )
+                     (if (vector? v)
+                       ; vector of ids
+                       (assoc doc k (map (fn [id] (get-doc-by-id db id)) v))
+                       ; id
+                       (assoc doc k (get-doc-by-id db v)))
+                     ; not an id
+                     (assoc doc k v))) {}))))
 
 (defn remove-metadata
   "Recursively removes metadata (keywords in :db/* namespace)"
@@ -35,36 +61,37 @@
                {})))
 
 (defn get-parent
-  "Returns eid of parent, if there is on, otherwise nil"
-  [conn eid]
+  "Returns eid of parent, if there is one, otherwise nil"
+  [db eid]
   (->> (d/q '[:find ?pid ?rel
               :in $ ?eid
               :where
               [?eid :id ?id]
               [?eid :db/embedded? true]
               [?pid ?rel ?id]]
-         @conn
+         @(db :conn)
          eid)
        (remove (fn [r] (= :id (second r))))
        ffirst))
 
 (defn save-doc!
-  [conn eid]
+  "Saves top-level document to file"
+  [db eid]
 
-  (if-let [parent-eid (get-parent conn eid)]
-    (save-doc! conn parent-eid)
+  (if-let [parent-eid (get-parent db eid)]
+    (save-doc! db parent-eid)
 
-    (let [doc (get-doc conn eid)
+    (let [doc (get-doc db eid)
           location (:db/src doc)]
-      (write! location (remove-metadata doc)))))
+      (out/replace! location (remove-metadata doc)))))
 
 (defn affected-docs [txs]
   (set (map second txs)))
 
-(defn transact! [conn txs]
-  (d/transact conn txs)
+(defn transact! [db txs]
+  (d/transact (db :conn) txs)
   ; TODO could identify parents of each affected-doc
   ; to avoid saving a top-level doc multiple times
   (doseq [doc (affected-docs txs)]
-    (save-doc! conn doc)))
+    (save-doc! db doc)))
 

@@ -4,14 +4,16 @@
     [humandb.io :as io]
     [datascript.core :as d]))
 
-(def query d/q)
+(defn query [query db]
+  (d/q query @(db :conn)))
 
 (defn read-db [root-path]
   (let [schema-data (io/read-schema root-path)
         relationships (:relationships schema-data)
         docs (io/read-data root-path)
         schema (import/relationships->datascript-schema relationships)
-        conn (import/init! schema)]
-    (import/import-docs conn relationships docs)
-    conn))
+        db {:conn (import/init! schema)
+            :relationships relationships}]
+    (import/import-docs db docs)
+    db))
 
