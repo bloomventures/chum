@@ -3,7 +3,8 @@
     [clojure.test :refer :all]
     [clojure.string :as string]
     [humandb.transact :as tx]
-    [humandb.import :as db]
+    [humandb.db :as db]
+    [humandb.import :as import]
     [yaml.core :as yaml]
     [datascript.core :as d]))
 
@@ -40,27 +41,21 @@
                       :comments [{:id 2000
                                   :type "comment"
                                   :content "ayy"}]}
+          db (db/init! [["post", "comments", "comment"]])]
 
-          relationships [["post", "comments", "comment"]]
-          schema (db/relationships->datascript-schema relationships)
-          conn (db/init! schema)
-          db {:conn conn
-              :relationships relationships}]
-
-      (db/import-docs db [nested-doc])
+      (import/import-docs db [nested-doc])
       (let [pid (first (d/q '[:find [?eid]
                               :in $ ?id
                               :where
                               [?eid :id ?id]]
-                            @conn
+                            @(db :conn)
                             1000))
             eid (first (d/q '[:find [?eid]
                               :in $ ?id
                               :where
                               [?eid :id ?id]]
-                            @conn
+                            @(db :conn)
                             2000))]
-
 
         (is (= {:id 1000
                 :type "post"
@@ -105,10 +100,7 @@
 (deftest get-parent
   (testing "returns parent"
     (testing "when nested"
-      (let [relationships [["post", "comments", "comment"]]
-            schema (db/relationships->datascript-schema relationships)
-            db {:conn (db/init! schema)
-                :relationships relationships}
+      (let [db (db/init! [["post", "comments", "comment"]])
             docs [{:type "post"
                    :content "abcde"
                    :id 1000
@@ -118,7 +110,7 @@
                   {:type "post"
                    :id 4000
                    :content "zzzzz"}]]
-        (db/import-docs db docs)
+        (import/import-docs db docs)
         (let [pid (first (d/q '[:find [?eid]
                                 :in $ ?id
                                 :where
@@ -135,10 +127,7 @@
                  (tx/get-parent db eid))))))
 
     (testing "when nested in array"
-      (let [relationships [["post", "comments", "comment"]]
-            schema (db/relationships->datascript-schema relationships)
-            db {:conn (db/init! schema)
-                :relationships relationships}
+      (let [db (db/init! [["post", "comments", "comment"]])
             docs [{:type "post"
                    :content "abcde"
                    :id 1000
@@ -151,7 +140,7 @@
                   {:type "post"
                    :id 4000
                    :content "zzzzz"}]]
-        (db/import-docs db docs)
+        (import/import-docs db docs)
         (let [pid (first (d/q '[:find [?eid]
                                 :in $ ?id
                                 :where
@@ -168,13 +157,8 @@
                  (tx/get-parent db eid))))))
 
     (testing "when nested multiple levels deep"
-      (let [relationships [["post", "comments", "comment"]
-                           ["comment", "author", "author"]]
-            schema (db/relationships->datascript-schema relationships)
-            conn (db/init! schema)
-            db {:conn (db/init! schema)
-                :relationships relationships}
-
+      (let [db (db/init! [["post", "comments", "comment"]
+                          ["comment", "author", "author"]])
             docs [{:type "post"
                    :content "abcde"
                    :id 1000
@@ -184,7 +168,7 @@
                                :author {:id 4000
                                         :type "author"
                                         :email "foo@bar.com"}}]}]]
-        (db/import-docs db docs)
+        (import/import-docs db docs)
         (let [pid (first (d/q '[:find [?eid]
                                 :in $ ?id
                                 :where
@@ -201,10 +185,7 @@
                  (tx/get-parent db eid)))))))
 
   (testing "does not return parent for docs that aren't embedded"
-    (let [relationships [["post", "comments", "comment"]]
-          schema (db/relationships->datascript-schema relationships)
-          db {:conn (db/init! schema)
-              :relationships relationships}
+    (let [db (db/init! [["post", "comments", "comment"]])
           docs [{:type "post"
                  :content "abcde"
                  :id 1000
@@ -218,7 +199,7 @@
                 {:type "post"
                  :id 4000
                  :content "zzzzz"}]]
-      (db/import-docs db docs)
+      (import/import-docs db docs)
       (let [eid (first (d/q '[:find [?eid]
                               :in $ ?id
                               :where
@@ -258,9 +239,7 @@
 
   #_(testing "nested doc"
     (let [path "/tmp/humandb_savedoc_test.yaml"
-          relationships [["post", "comments", "comment"]]
-          schema (db/relationships->datascript-schema relationships)
-          conn (db/init! schema)
+          db (db/init! [["post", "comments", "comment"]])
           docs [{:type "post"
                  :content "abcde"
                  :id 1000
@@ -277,7 +256,7 @@
                               :in $ ?id
                               :where
                               [?eid :id ?id]]
-                            @conn
+                            @(db :conn)
                             5000))]
         ; save-doc! currently expects the docs to exist at their indexes
         ; create a fake pre-version of file

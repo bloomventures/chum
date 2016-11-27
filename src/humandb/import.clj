@@ -2,11 +2,6 @@
   (:require
     [datascript.core :as d]))
 
-(defn init!
-  "creates a datascript database that needs to be passed in other functions"
-  [schema]
-  (d/create-conn schema))
-
 (def ^:dynamic generate-id
   (let [id (atom 0)]
     (fn []
@@ -71,10 +66,3 @@
 (defn import-docs [db docs]
   (d/transact! (db :conn) (docs->txs (db :relationships) docs)))
 
-(defn relationships->datascript-schema [relationships]
-  (reduce (fn [schema r]
-            (assoc schema
-                   (keyword (second r))
-              {:db/cardinality :db.cardinality/many}))
-    {}
-    relationships))

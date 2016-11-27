@@ -1,40 +1,30 @@
-(ns humandb.test.import
+(os humandb.test.import
   (:require
     [clojure.test :refer :all]
-    [humandb.import :as db]
+    [humandb.db :as db]
+    [humandb.import :as import]
     [datascript.core :as d]))
 
 (defn mock-generate-id [t]
-  (binding [db/generate-id (let [id (atom 0)]
-                             (fn []
-                               (swap! id inc)
-                               @id))]
+  (binding [import/generate-id (let [id (atom 0)]
+                                 (fn []
+                                   (swap! id inc)
+                                   @id))]
     (t)))
 
 (use-fixtures :each mock-generate-id)
 
-(deftest relationships->datascript-schema
-
-  (testing "relationships->datascript-schema"
-    (let [relationships [["episode" "episode-id" "level"]
-                         ["level" "level-id" "word"]]
-          schema (db/relationships->datascript-schema relationships)]
-
-      (is (= schema {:episode-id {:db/cardinality :db.cardinality/many}
-                     :level-id {:db/cardinality :db.cardinality/many}})))))
 
 (deftest import-docs
   (testing "import-docs"
     (testing "basic"
-      (let [schema {}
-            db {:conn (db/init! schema)
-                :relationships []}
+      (let [db (db/init! [])
             docs [{:name "Alice"
                    :id 1}
                   {:name "Bob"
                    :id 2}]]
 
-        (db/import-docs db docs)
+        (import/import-docs db docs)
 
         (is (= "Bob" (first (d/q '[:find [?name]
                                    :where
@@ -43,10 +33,7 @@
                               @(db :conn)))))))
 
     (testing "string ids"
-      (let [relationships [["user", "friend-id", "user"]]
-            schema (db/relationships->datascript-schema relationships)
-            db {:relationships relationships
-                :conn (db/init! schema)}
+      (let [db (db/init! [["user", "friend-id", "user"]])
             docs [{:name "Alice"
                    :id "alice"
                    :type "user"
@@ -55,7 +42,7 @@
                    :id "bob"
                    :type "user"}]]
 
-        (db/import-docs db docs)
+        (import/import-docs db docs)
 
         (is (= "Bob" (first (d/q '[:find [?name]
                                    :where
@@ -65,15 +52,11 @@
                                    [?b :name ?name]]
                               @(db :conn)))))))
 
-
     (testing "evil"
-      (let [relationships [["episode", "levels", "level"]
-                           ["level", "word-ids", "word"]
-                           ["translation", "variation-id", "variation"]
-                           ["translation", "word-id", "word"]]
-            schema (db/relationships->datascript-schema relationships)
-            db {:conn (db/init! schema)
-                :relationships relationships}
+      (let [db (db/init! [["episode", "levels", "level"]
+                          ["level", "word-ids", "word"]
+                          ["translation", "variation-id", "variation"]
+                          ["translation", "word-id", "word"]])
             docs [{:name "Artist"
                    :type "episode"
                    :id 1
@@ -92,7 +75,7 @@
                    :type "word"
                    :name "green"}]]
 
-        (db/import-docs db docs)
+        (import/import-docs db docs)
 
         (is (= "Artist" (first (d/q '[:find [?name]
                                       :where
@@ -132,7 +115,7 @@
                 [:db/add 3 :type "episode"]
                 [:db/add 4 :id 20]
                 [:db/add 4 :type "episode"]]
-               (db/docs->txs relationships docs)))))))
+               (import/docs->txs relationships docs)))))))
 
 (deftest doc->eav
 
@@ -147,7 +130,7 @@
         (is (= [[1 :id 100]
                 [1 :type "level"]
                 [1 :episode-id 300]]
-              (db/doc->eav relationships doc)))))
+              (import/doc->eav relationships doc)))))
 
     (testing "id array"
       (let [relationships [["episode" "level-ids" "level"]]
@@ -159,7 +142,7 @@
                 [2 :type "episode"]
                 [2 :level-ids 2]
                 [2 :level-ids 3]]
-               (db/doc->eav relationships doc)))))
+               (import/doc->eav relationships doc)))))
 
     (testing "single embedded"
       (let [relationships [["episode" "level" "level"]]
@@ -174,7 +157,7 @@
                 [4 :id 2]
                 [4 :type "level"]
                 [4 :db/embedded? true]]
-               (db/doc->eav relationships doc)))))
+               (import/doc->eav relationships doc)))))
 
     (testing "multiple embedded"
       (let [relationships [["episode" "levels" "level"]]
@@ -195,7 +178,7 @@
                 [7 :id 3]
                 [7 :type "level"]
                 [7 :db/embedded? true]]
-               (db/doc->eav relationships doc)))))
+               (import/doc->eav relationships doc)))))
 
 
     (testing "nested embedded"
@@ -218,7 +201,7 @@
                  [10 :id 3]
                  [10 :type "word"]
                  [10 :db/embedded? true]}
-               (set (db/doc->eav relationships doc))))))))
+               (set (import/doc->eav relationships doc))))))))
 
 (deftest doc->raw-eav
   (testing "doc->raw-eav"
@@ -230,7 +213,7 @@
               [1 :name "Colors 1"]
               [1 :type "level"]
               [1 :episode-id 1]]
-             (db/doc->raw-eav doc))))))
+             (import/doc->raw-eav doc))))))
 
 (deftest eavs->txs
   (testing "eavs->txs"
@@ -240,5 +223,5 @@
       (is (= [[:db/add 2 :name "Colors 1"]
               [:db/add 2 :type "level"]
               [:db/add 2 :episode-id 1]]
-             (db/eavs->txs eavs))))))
+             (import/eavs->txs eavs))))))
 
