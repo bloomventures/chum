@@ -23,21 +23,37 @@
                         id))]
     (get-doc db eid)))
 
+(defn embedded?
+  "Returns true if child-doc is embedded in parent-doc"
+  [child-doc parent-doc]
+  (boolean
+    (and (:db/embedded? child-doc)
+         (= (:db/src parent-doc)
+            (take (count (:db/src parent-doc)) (:db/src child-doc)))
+         (<= 1 (- (count (:db/src child-doc))
+                  (count (:db/src parent-doc))) 2))))
+
+(defn doc-or-id-if-child
+  "If doc with child-id is embedded in parent-id, return child-doc, otherwise, just return the child-id"
+  [db child-id parent-doc]
+  (let [child-doc (get-doc-by-id db child-id)]
+    (if (embedded? child-doc parent-doc)
+      child-doc
+      child-id)))
+
 (defn get-doc
   "Given eid, returns doc containing all attributes (and embedded docs)"
   [db eid]
   (let [raw-doc (d/pull @(db :conn) '[*] eid)]
     (->> raw-doc
          (reduce (fn [doc [k v]]
-                   (if (and (relationship? db (raw-doc :type) k)
-                            ;TODO child-doc embedded?
-                            ;TODO child-doc embeded-in-parent?
-                            )
+                   (if (relationship? db (raw-doc :type) k)
                      (if (vector? v)
                        ; vector of ids
-                       (assoc doc k (map (fn [id] (get-doc-by-id db id)) v))
+                       (assoc doc k (map (fn [id]
+                                           (doc-or-id-if-child db id raw-doc)) v))
                        ; id
-                       (assoc doc k (get-doc-by-id db v)))
+                       (assoc doc k (doc-or-id-if-child db v raw-doc)))
                      ; not an id
                      (assoc doc k v))) {}))))
 

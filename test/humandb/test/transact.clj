@@ -26,6 +26,99 @@
       (is (= #{1234}
              (tx/affected-docs txs))))))
 
+
+(deftest test-embedded
+  (testing "returns true when direct embed"
+    (let [docs [{:id 1
+                 :foo "bar"
+                 :type "post"
+                 :db/src [:a 0]
+                 :comments {:id 2
+                            :abc 123
+                            :type "comment"
+                            :db/src [:a 0 :comments]}}]
+          db (db/init! [["post", "comments", "comment"]])]
+      (import/import-docs db docs)
+
+      (is (= true
+             (tx/embedded? (tx/get-doc-by-id db 2)
+                           (tx/get-doc-by-id db 1))))))
+
+  (testing "returns true when array embed"
+    (let [docs [{:id 1
+                 :foo "bar"
+                 :type "post"
+                 :db/src [:a 0]
+                 :comments [{:id 2
+                             :abc 123
+                             :type "comment"
+                             :db/src [:a 0 :comments 0]}]}]
+          db (db/init! [["post", "comments", "comment"]])]
+      (import/import-docs db docs)
+
+      (is (= true
+             (tx/embedded? (tx/get-doc-by-id db 2)
+                           (tx/get-doc-by-id db 1))))))
+
+  (testing "returns false when not embedded"
+    (let [docs [{:id 1
+                 :foo "bar"
+                 :type "post"
+                 :db/src [:a 0]
+                 :comments [2]}
+                {:id 2
+                 :abc 123
+                 :type "comment"
+                 :db/src [:a 1]}]
+          db (db/init! [["post", "comments", "comment"]])]
+        (import/import-docs db docs)
+
+        (is (= false
+               (tx/embedded? (tx/get-doc-by-id db 2)
+                             (tx/get-doc-by-id db 1))))))
+
+  (testing "returns false when deeply embedded"
+    (let [docs [{:id 1
+                 :foo "bar"
+                 :type "post"
+                 :db/src [:a 0]
+                 :comments [{:id 2
+                             :abc 123
+                             :type "comment"
+                             :db/src [:a 0 :comments 0]
+                             :author {:name "Bob"
+                                      :id 3
+                                      :type "author"
+                                      :db/src [:a 0 :comments 0 :author]}}]}]
+
+          db (db/init! [["post", "comments", "comment"]
+                        ["comment", "author", "author"]])]
+        (import/import-docs db docs)
+
+        (is (= false
+               (tx/embedded? (tx/get-doc-by-id db 3)
+                             (tx/get-doc-by-id db 1))))))
+
+  (testing "returns false when embedded in other doc, not this one"
+    (let [docs [{:id 1
+                 :foo "bar"
+                 :type "post"
+                 :db/src [:a 0]}
+                {:id 2
+                 :foo "baz"
+                 :type "post"
+                 :db/src [:a 1]
+                 :comment {:id 3
+                           :abc 123
+                           :type "comment"
+                           :db/src [:a 1 :comment]}}]
+          db (db/init! [["post", "comment", "comment"]])]
+      (import/import-docs db docs)
+
+      (is (= false
+             (tx/embedded? (tx/get-doc-by-id db 3)
+                           (tx/get-doc-by-id db 1)))))))
+
 (deftest get-doc
   (testing "returns doc attributes"
     (let [conn (d/create-conn {})]
@@ -36,14 +129,16 @@
              (tx/get-doc {:conn conn} 1234)))))
 
   (testing "returns nested docs"
-    (let [nested-doc {:id 1000
-                      :type "post"
-                      :comments [{:id 2000
-                                  :type "comment"
-                                  :content "ayy"}]}
+    (let [docs [{:id 1000
+                 :type "post"
+                 :db/src [:a 0]
+                 :comments [{:id 2000
+                             :type "comment"
+                             :db/src [:a 0 :comments 0]
+                             :content "ayy"}]}]
           db (db/init! [["post", "comments", "comment"]])]
 
-      (import/import-docs db [nested-doc])
+      (import/import-docs db docs)
       (let [pid (first (d/q '[:find [?eid]
                               :in $ ?id
                               :where
@@ -59,13 +154,37 @@
 
         (is (= {:id 1000
                 :type "post"
+                :db/src [:a 0]
                 :db/id pid
                 :comments [{:id 2000
                             :type "comment"
                             :content "ayy"
+                            :db/src [:a 0 :comments 0]
                             :db/embedded? true
-                            :db/id eid
-                            }]}
+                            :db/id eid}]}
+               (tx/get-doc db pid))))))
+
+  (testing "does not return related docs as embedded"
+    (let [docs [{:id 1000
+                 :type "post"
+                 :comments [2000]}
+                {:id 2000
+                 :type "comment"
+                 :content "ayy"}]
+          db (db/init! [["post", "comments", "comment"]])]
+
+      (import/import-docs db docs)
+
+      (let [pid (first (d/q '[:find [?eid]
+                              :in $ ?id
+                              :where
+                              [?eid :id ?id]]
+                            @(db :conn)
+                            1000))]
+        (is (= {:id 1000
+                :type "post"
+                :db/id pid
+                :comments [2000]}
                (tx/get-doc db pid)))))))
 
 (deftest remove-metadata
