@@ -69,7 +69,7 @@
                    (map? v)
                    (assoc memo k (remove-metadata v))
 
-                   (and (vector? v) (map? (first v)))
+                   (and (coll? v) (map? (first v)))
                    (assoc memo k (map remove-metadata v))
 
                    :else

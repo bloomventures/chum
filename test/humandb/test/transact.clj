@@ -328,12 +328,11 @@
         (is (= nil
                (tx/get-parent db eid)))))))
 
-#_(deftest save-doc!
+(deftest save-doc!
   (testing "top-level doc"
     (let [path "/tmp/humandb_savedoc_test.yaml"
           relationships [["post", "comments", "comment"]]
-          schema (db/relationships->datascript-schema relationships)
-          conn (db/init! schema)
+          db (db/init! relationships)
           docs [{:type "post"
                  :content "abcde"
                  :id 1000
@@ -342,35 +341,36 @@
                  :id 4000
                  :content "zzzzz"
                  :db/src [path 1]}]]
-      (db/import-docs conn relationships docs)
+      (import/import-docs db docs)
       (let [eid (first (d/q '[:find [?eid]
                               :in $ ?id
                               :where
                               [?eid :id ?id]]
-                            @conn
+                            @(db :conn)
                             1000))]
         ; save-doc! currently expects the docs to exist at their indexes
         ; create a fake pre-version of file
         (spit path "---\n ---\n ---\n")
-        (tx/save-doc! conn eid)
+        (tx/save-doc! db eid)
         (is (= "---\ncontent: abcde\nid: 1000\ntype: post\n---\n"
                (slurp path))))))
 
-  #_(testing "nested doc"
+  (testing "nested doc"
     (let [path "/tmp/humandb_savedoc_test.yaml"
           db (db/init! [["post", "comments", "comment"]])
           docs [{:type "post"
-                 :content "abcde"
+                 :content "zzz"
                  :id 1000
                  :comments [{:id 5000
                              :type "comment"
-                             :content "blargh"}]
+                             :content "blargh"
+                             :db/src [path 0 :comments 0]}]
                  :db/src [path 0]}
                 {:type "post"
                  :id 4000
                  :content "zzzzz"
                  :db/src [path 1]}]]
-      (db/import-docs conn relationships docs)
+      (import/import-docs db docs)
       (let [eid (first (d/q '[:find [?eid]
                               :in $ ?id
                               :where
@@ -380,9 +380,7 @@
         ; save-doc! currently expects the docs to exist at their indexes
         ; create a fake pre-version of file
         (spit path "---\n ---\n ---\n")
-        (tx/save-doc! conn eid)
-        #_(is (= (yaml/generate-string (first docs) :dumper-options {:flow-style :block})
-            nil))
-        (is (= "---\ncontent: abcde\nid: 1000\ntype: post\n---\n"
+        (tx/save-doc! db eid)
+        (is (= "---\ncomments:\n- content: blargh\n  id: 5000\n  type: comment\ncontent: zzz\nid: 1000\ntype: post\n---\n"
                (slurp path)))))))
 
