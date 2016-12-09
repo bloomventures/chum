@@ -1,4 +1,4 @@
-(os humandb.test.import
+(ns humandb.test.import
   (:require
     [clojure.test :refer :all]
     [humandb.db :as db]
