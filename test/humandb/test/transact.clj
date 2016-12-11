@@ -384,3 +384,29 @@
         (is (= "---\ncomments:\n- content: blargh\n  id: 5000\n  type: comment\ncontent: zzz\nid: 1000\ntype: post\n---\n"
                (slurp path)))))))
 
+
+(def transact!
+  (testing "update an existing document"
+    (let [db (db/init! []) path "/tmp/humandb_tx_test.yml"]
+      (spit path "---\n ---\n ---\n")
+      (import/import-docs db [{:id 25
+                               :foo "bar"
+                               :db/src [path 0]}])
+
+      (let [eid (first (d/q '[:find [?eid]
+                              :in $ ?id
+                              :where
+                              [?eid :id ?id]]
+                            @(db :conn)
+                            25))]
+
+
+        (tx/transact! db [[:db/add eid :foo "baz"]])
+
+        (is (= "baz"
+               (first (d/q '[:find [?v]
+                             :in $
+                             :where
+                             [_ :id 25]
+                             [_ :foo ?v]]
+                           @(db :conn)))))))))
