@@ -58,3 +58,11 @@
 
 (defn read-schema [root-path]
   (parse-schema-file (str root-path "/schema.yaml")))
+
+(defn initialize-db-folder! [root-path]
+  (fs/mkdirs root-path)
+  (fs/create (fs/file (str root-path "/schema.yaml")))
+  (fs/mkdir (str root-path "/data"))
+  (when (empty? (fs/find-files (str root-path "/data/") #".*\.yaml"))
+    (fs/create (fs/file (str root-path "/data/entity.yaml")))))
+

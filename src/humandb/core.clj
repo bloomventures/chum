@@ -9,6 +9,7 @@
   (d/q query @(db :conn)))
 
 (defn read-db [root-path]
+  (io/initialize-db-folder! root-path)
   (let [schema-data (io/read-schema root-path)
         db (db/init! (:relationships schema-data))
         docs (io/read-data root-path)]
