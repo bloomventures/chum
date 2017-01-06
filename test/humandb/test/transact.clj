@@ -6,7 +6,8 @@
     [humandb.db :as db]
     [humandb.import :as import]
     [yaml.core :as yaml]
-    [datascript.core :as d]))
+    [datascript.core :as d]
+    [me.raynes.fs :as fs]))
 
 (deftest affected-docs
   (testing "single"
@@ -37,7 +38,7 @@
                             :abc 123
                             :type "comment"
                             :db/src [:a 0 :comments]}}]
-          db (db/init! [["post", "comments", "comment"]])]
+          db (db/init! [["post", "comments", "comment"]] "/tmp/")]
       (import/import-docs db docs)
 
       (is (= true
@@ -53,7 +54,7 @@
                              :abc 123
                              :type "comment"
                              :db/src [:a 0 :comments 0]}]}]
-          db (db/init! [["post", "comments", "comment"]])]
+          db (db/init! [["post", "comments", "comment"]] "/tmp/")]
       (import/import-docs db docs)
 
       (is (= true
@@ -70,7 +71,7 @@
                  :abc 123
                  :type "comment"
                  :db/src [:a 1]}]
-          db (db/init! [["post", "comments", "comment"]])]
+          db (db/init! [["post", "comments", "comment"]] "/tmp/")]
         (import/import-docs db docs)
 
         (is (= false
@@ -92,7 +93,8 @@
                                       :db/src [:a 0 :comments 0 :author]}}]}]
 
           db (db/init! [["post", "comments", "comment"]
-                        ["comment", "author", "author"]])]
+                        ["comment", "author", "author"]]
+                       "/tmp/")]
         (import/import-docs db docs)
 
         (is (= false
@@ -112,7 +114,7 @@
                            :abc 123
                            :type "comment"
                            :db/src [:a 1 :comment]}}]
-          db (db/init! [["post", "comment", "comment"]])]
+          db (db/init! [["post", "comment", "comment"]] "/tmp/")]
       (import/import-docs db docs)
 
       (is (= false
@@ -136,7 +138,7 @@
                              :type "comment"
                              :db/src [:a 0 :comments 0]
                              :content "ayy"}]}]
-          db (db/init! [["post", "comments", "comment"]])]
+          db (db/init! [["post", "comments", "comment"]] "/tmp/")]
 
       (import/import-docs db docs)
       (let [pid (first (d/q '[:find [?eid]
@@ -171,7 +173,7 @@
                 {:id 2000
                  :type "comment"
                  :content "ayy"}]
-          db (db/init! [["post", "comments", "comment"]])]
+          db (db/init! [["post", "comments", "comment"]] "/tmp/")]
 
       (import/import-docs db docs)
 
@@ -219,7 +221,7 @@
 (deftest get-parent
   (testing "returns parent"
     (testing "when nested"
-      (let [db (db/init! [["post", "comments", "comment"]])
+      (let [db (db/init! [["post", "comments", "comment"]] "/tmp/")
             docs [{:type "post"
                    :content "abcde"
                    :id 1000
@@ -246,7 +248,7 @@
                  (tx/get-parent db eid))))))
 
     (testing "when nested in array"
-      (let [db (db/init! [["post", "comments", "comment"]])
+      (let [db (db/init! [["post", "comments", "comment"]] "/tmp/")
             docs [{:type "post"
                    :content "abcde"
                    :id 1000
@@ -277,7 +279,8 @@
 
     (testing "when nested multiple levels deep"
       (let [db (db/init! [["post", "comments", "comment"]
-                          ["comment", "author", "author"]])
+                          ["comment", "author", "author"]]
+                         "/tmp/")
             docs [{:type "post"
                    :content "abcde"
                    :id 1000
@@ -304,7 +307,7 @@
                  (tx/get-parent db eid)))))))
 
   (testing "does not return parent for docs that aren't embedded"
-    (let [db (db/init! [["post", "comments", "comment"]])
+    (let [db (db/init! [["post", "comments", "comment"]] "/tmp/")
           docs [{:type "post"
                  :content "abcde"
                  :id 1000
@@ -330,83 +333,94 @@
 
 (deftest save-doc!
   (testing "top-level doc"
-    (let [path "/tmp/humandb_savedoc_test.yaml"
-          relationships [["post", "comments", "comment"]]
-          db (db/init! relationships)
-          docs [{:type "post"
-                 :content "abcde"
-                 :id 1000
-                 :db/src [path 0]}
-                {:type "post"
-                 :id 4000
-                 :content "zzzzz"
-                 :db/src [path 1]}]]
-      (import/import-docs db docs)
-      (let [eid (first (d/q '[:find [?eid]
-                              :in $ ?id
-                              :where
-                              [?eid :id ?id]]
-                            @(db :conn)
-                            1000))]
-        ; save-doc! currently expects the docs to exist at their indexes
-        ; create a fake pre-version of file
-        (spit path "---\n ---\n ---\n")
-        (tx/save-doc! db eid)
-        (is (= "---\ncontent: abcde\nid: 1000\ntype: post\n---\n"
-               (slurp path))))))
+    (let [root-path (str "/tmp/" (gensym "humandb_transact_savedoc_toplevel_test"))]
+      (fs/mkdirs (str root-path "/data/"))
+      (let [file-path "stuff.yaml"
+            path (str root-path "/data/" file-path)
+            relationships [["post", "comments", "comment"]]
+            db (db/init! relationships root-path)
+            docs [{:type "post"
+                   :content "abcde"
+                   :id 1000
+                   :db/src [file-path 0]}
+                  {:type "post"
+                   :id 4000
+                   :content "zzzzz"
+                   :db/src [file-path 1]}]]
+        (import/import-docs db docs)
+        (let [eid (first (d/q '[:find [?eid]
+                                :in $ ?id
+                                :where
+                                [?eid :id ?id]]
+                              @(db :conn)
+                              1000))]
+          ; save-doc! currently expects the docs to exist at their indexes
+          ; create a fake pre-version of file
+          (spit path "---\n ---\n ---\n")
+          (tx/save-doc! db eid)
+          (is (= "---\ncontent: abcde\nid: 1000\ntype: post\n---\n"
+                 (slurp path)))))))
 
   (testing "nested doc"
-    (let [path "/tmp/humandb_savedoc_test.yaml"
-          db (db/init! [["post", "comments", "comment"]])
-          docs [{:type "post"
-                 :content "zzz"
-                 :id 1000
-                 :comments [{:id 5000
-                             :type "comment"
-                             :content "blargh"
-                             :db/src [path 0 :comments 0]}]
-                 :db/src [path 0]}
-                {:type "post"
-                 :id 4000
-                 :content "zzzzz"
-                 :db/src [path 1]}]]
-      (import/import-docs db docs)
-      (let [eid (first (d/q '[:find [?eid]
-                              :in $ ?id
-                              :where
-                              [?eid :id ?id]]
-                            @(db :conn)
-                            5000))]
-        ; save-doc! currently expects the docs to exist at their indexes
-        ; create a fake pre-version of file
-        (spit path "---\n ---\n ---\n")
-        (tx/save-doc! db eid)
-        (is (= "---\ncomments:\n- content: blargh\n  id: 5000\n  type: comment\ncontent: zzz\nid: 1000\ntype: post\n---\n"
-               (slurp path)))))))
+    (let [root-path (str "/tmp/" (gensym "humandb_transact_savedoc_nested_test"))]
+      (fs/mkdirs (str root-path "/data/"))
+      (let [file-path "stuff.yaml"
+            path (str root-path "/data/" file-path)
+            db (db/init! [["post", "comments", "comment"]] root-path)
+            docs [{:type "post"
+                   :content "zzz"
+                   :id 1000
+                   :comments [{:id 5000
+                               :type "comment"
+                               :content "blargh"
+                               :db/src [file-path 0 :comments 0]}]
+                   :db/src [file-path 0]}
+                  {:type "post"
+                   :id 4000
+                   :content "zzzzz"
+                   :db/src [file-path 1]}]]
+        (import/import-docs db docs)
+        (let [eid (first (d/q '[:find [?eid]
+                                :in $ ?id
+                                :where
+                                [?eid :id ?id]]
+                              @(db :conn)
+                              5000))]
+          ; save-doc! currently expects the docs to exist at their indexes
+          ; create a fake pre-version of file
+          (spit path "---\n ---\n ---\n")
+          (tx/save-doc! db eid)
+          (is (= "---\ncomments:\n- content: blargh\n  id: 5000\n  type: comment\ncontent: zzz\nid: 1000\ntype: post\n---\n"
+                 (slurp path))))))))
 
 
 (def transact!
   (testing "update an existing document"
-    (let [db (db/init! []) path "/tmp/humandb_tx_test.yml"]
-      (spit path "---\n ---\n ---\n")
-      (import/import-docs db [{:id 25
-                               :foo "bar"
-                               :db/src [path 0]}])
+    (let [root-path (str "/tmp/" (gensym "humandb_transact_transact_test"))]
+      (fs/mkdirs (str root-path "/data/"))
+      (let [db (db/init! [] root-path)
+            file-path "stuff.yml"
+            path (str root-path "/data/" file-path)]
+        (spit path "---\n ---\n ---\n")
 
-      (let [eid (first (d/q '[:find [?eid]
-                              :in $ ?id
-                              :where
-                              [?eid :id ?id]]
-                            @(db :conn)
-                            25))]
+        (import/import-docs db [{:id 25
+                                 :foo "bar"
+                                 :db/src [file-path 0]}])
+
+        (let [eid (first (d/q '[:find [?eid]
+                                :in $ ?id
+                                :where
+                                [?eid :id ?id]]
+                              @(db :conn)
+                              25))]
 
 
-        (tx/transact! db [[:db/add eid :foo "baz"]])
+          (tx/transact! db [[:db/add eid :foo "baz"]])
 
-        (is (= "baz"
-               (first (d/q '[:find [?v]
-                             :in $
-                             :where
-                             [_ :id 25]
-                             [_ :foo ?v]]
-                           @(db :conn)))))))))
+          (is (= "baz"
+                 (first (d/q '[:find [?v]
+                               :in $
+                               :where
+                               [_ :id 25]
+                               [_ :foo ?v]]
+                             @(db :conn))))))))))

@@ -12,6 +12,7 @@
 
 (defn init!
   "creates a datascript database that needs to be passed in other functions"
-  [relationships]
+  [relationships root-path]
   {:conn (d/create-conn (relationships->datascript-schema relationships))
-   :relationships relationships})
+   :relationships relationships
+   :root-path root-path})

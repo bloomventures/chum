@@ -6,7 +6,7 @@
 (deftest parse-data-file
   (testing "parsing yaml file"
     (is (= [{:id "eloulk" :name "Kosso Eloul" :type "artist" :db/src ["artists.yaml" 0]}
-            {:id "etrogs" :name "Sorol Etrog" :type "artist" :db/src ["artists.yaml" 1]}]
+            {:id "etrogs" :name "Sorel Etrog" :type "artist" :db/src ["artists.yaml" 1]}]
            (io/parse-data-file
              "./resources/test_data/data/artists.yaml"
              "./resources/test_data/data")))))
@@ -14,7 +14,7 @@
 (deftest read-data
   (testing "reading all data from a directory"
     (is (= [{:id "eloulk" :name "Kosso Eloul" :type "artist" :db/src ["artists.yaml" 0]}
-            {:id "etrogs" :name "Sorol Etrog" :type "artist" :db/src ["artists.yaml" 1]}
+            {:id "etrogs" :name "Sorel Etrog" :type "artist" :db/src ["artists.yaml" 1]}
             {:name "Sculpture 1" :artist-ids ["eloulk"] :type "sculpture" :db/src ["sculptures.yaml" 0]}
             {:name "Sculpture 2" :artist-ids ["eloulk" "etrogs"] :type "sculpture" :db/src ["sculptures.yaml" 1]}]
            (io/read-data "./resources/test_data")))))

@@ -65,9 +65,11 @@
                    "foo: bar"
                    "---"
                    ""])
-          path "/tmp/humandb_test.yaml"]
+          root-path "/tmp/"
+          file-path "humandb_out_replace_test.yaml"
+          path (str root-path file-path)]
       (spit path before)
-      (out/replace! [path 1] {:foo "bar"})
+      (out/replace! root-path [file-path 1] {:foo "bar"})
       (is (= after (slurp path))))))
 
 

@@ -18,7 +18,8 @@
       (str "---\n")))
 
 (defn replace!
-  [[file-path index] doc]
-  (let [body (slurp file-path)
-        new-body (replace body index doc)]
-    (spit file-path new-body)))
+  [root-path [file-path index] doc]
+  (let [path (str root-path file-path)]
+    (let [body (slurp path)
+          new-body (replace body index doc)]
+      (spit path new-body))))

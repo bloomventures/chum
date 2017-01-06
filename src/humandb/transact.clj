@@ -99,7 +99,7 @@
 
     (let [doc (get-doc db eid)
           location (:db/src doc)]
-      (out/replace! location (remove-metadata doc)))))
+      (out/replace! (str (db :root-path) "/data/") location (remove-metadata doc)))))
 
 (defn affected-docs [txs]
   (set (map second txs)))

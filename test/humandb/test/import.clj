@@ -18,7 +18,7 @@
 (deftest import-docs
   (testing "import-docs"
     (testing "basic"
-      (let [db (db/init! [])
+      (let [db (db/init! [] "/tmp")
             docs [{:name "Alice"
                    :id 1}
                   {:name "Bob"
@@ -33,7 +33,7 @@
                               @(db :conn)))))))
 
     (testing "string ids"
-      (let [db (db/init! [["user", "friend-id", "user"]])
+      (let [db (db/init! [["user", "friend-id", "user"]] "/tmp")
             docs [{:name "Alice"
                    :id "alice"
                    :type "user"
@@ -56,7 +56,8 @@
       (let [db (db/init! [["episode", "levels", "level"]
                           ["level", "word-ids", "word"]
                           ["translation", "variation-id", "variation"]
-                          ["translation", "word-id", "word"]])
+                          ["translation", "word-id", "word"]]
+                         "/tmp")
             docs [{:name "Artist"
                    :type "episode"
                    :id 1
