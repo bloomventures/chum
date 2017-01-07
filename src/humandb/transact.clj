@@ -101,13 +101,13 @@
           location (:db/src doc)]
       (out/replace! (str (db :root-path) "/data/") location (remove-metadata doc)))))
 
-(defn affected-docs [txs]
-  (set (map second txs)))
+(defn affected-docs [tx]
+  (set (map first (:tx-data tx))))
 
 (defn transact! [db txs]
-  (d/transact (db :conn) txs)
-  ; TODO could identify parents of each affected-doc
-  ; to avoid saving a top-level doc multiple times
-  (doseq [doc (affected-docs txs)]
-    (save-doc! db doc)))
+  (let [tx (d/transact (db :conn) txs)]
+    ; TODO could identify parents of each affected-doc
+    ; to avoid saving a top-level doc multiple times
+    (doseq [doc (affected-docs @tx)]
+      (save-doc! db doc))))
 

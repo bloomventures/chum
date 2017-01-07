@@ -11,21 +11,24 @@
 
 (deftest affected-docs
   (testing "single"
-    (let [txs [[:db/add 1234 :foo "bar"]]]
+    (let [db (d/create-conn)
+          tx (d/transact! db [[:db/add 1234 :foo "bar"]])]
       (is (= #{1234}
-             (tx/affected-docs txs)))))
+             (tx/affected-docs tx)))))
 
   (testing "multiple"
-    (let [txs [[:db/add 1234 :foo "bar"]
-               [:db/add 5678 :foo "bar"]]]
+    (let [db (d/create-conn)
+          tx (d/transact! db [[:db/add 1234 :foo "bar"]
+                              [:db/add 5678 :foo "bar"]])]
       (is (= #{1234 5678}
-             (tx/affected-docs txs)))))
+             (tx/affected-docs tx)))))
 
   (testing "removes dupes"
-    (let [txs [[:db/add 1234 :foo "bar"]
-               [:db/add 1234 :bar "baz"]]]
+    (let [db (d/create-conn)
+          tx (d/transact! db [[:db/add 1234 :foo "bar"]
+                              [:db/add 1234 :bar "baz"]])]
       (is (= #{1234}
-             (tx/affected-docs txs))))))
+             (tx/affected-docs tx))))))
 
 
 (deftest test-embedded
