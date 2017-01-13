@@ -4,18 +4,17 @@
     [clojure.string :as string]
     [humandb.out :as out]))
 
-(deftest replace
+
+(deftest replace-doc-in-stream
   (testing "first"
-    (let [before (string/join
-                   "\n"
+    (let [before (string/join "\n"
                    ["---"
                     "id: 1"
                     "---"
                     "id: 2"
                     "---"
                     ""])
-          after (string/join
-                  "\n"
+          after (string/join "\n"
                   ["---"
                    "foo: bar"
                    "---"
@@ -23,19 +22,17 @@
                    "---"
                    ""])]
       (is (= after
-             (out/replace before 0 {:foo "bar"})))))
+             (out/replace-doc-in-stream before 0 {:foo "bar"})))))
 
   (testing "second"
-    (let [before (string/join
-                   "\n"
+    (let [before (string/join "\n"
                    ["---"
                     "id: 1"
                     "---"
                     "id: 2"
                     "---"
                     ""])
-          after (string/join
-                  "\n"
+          after (string/join "\n"
                   ["---"
                    "id: 1"
                    "---"
@@ -43,22 +40,46 @@
                    "---"
                    ""])]
       (is (= after
-             (out/replace before 1 {:foo "bar"}))))))
+             (out/replace-doc-in-stream before 1 {:foo "bar"}))))))
 
+(deftest append-doc-to-stream
+  (testing "can append doc to yaml stream"
+    (let [doc {:id 3}
+          before (string/join "\n"
+                   ["---"
+                    "id: 1"
+                    "---"
+                    "id: 2"
+                    ""])
+          after (string/join "\n"
+                  ["---"
+                   "id: 1"
+                   "---"
+                   "id: 2"
+                   "---"
+                   "id: 3"
+                   ""])]
+      (is (= after (out/append-doc-to-stream before doc))))))
+
+(deftest create-stream-with-doc
+  (testing "can create stream of yaml docs"
+    (let [doc {:id 3}
+          after (string/join "\n"
+                  ["---"
+                   "id: 3"
+                   ""])]
+      (is (= after (out/create-stream-with-doc doc))))))
 
 (deftest replace!
-
   (testing "..."
-    (let [before (string/join
-                   "\n"
+    (let [before (string/join "\n"
                    ["---"
                     "id: 1"
                     "---"
                     "id: 2"
                     "---"
                     ""])
-          after (string/join
-                  "\n"
+          after (string/join "\n"
                   ["---"
                    "id: 1"
                    "---"
@@ -72,4 +93,38 @@
       (out/replace! root-path [file-path 1] {:foo "bar"})
       (is (= after (slurp path))))))
 
+(deftest insert!
+  (testing "insert when no file exists, creates file"
+    (let [doc {:id 3}
+          after (string/join "\n"
+                  ["---"
+                   "id: 3"
+                   ""])
+          root-path "/tmp/"
+          file-path (str (gensym "humandb_out_insert!_test") ".yaml")
+          path (str root-path file-path)]
+      (out/insert! path doc)
+      (is (= after (slurp path)))))
 
+  (testing "insert when file exists, appends to file"
+    (let [doc {:id 3}
+          before (string/join "\n"
+                     ["---"
+                      "id: 1"
+                      "---"
+                      "id: 2"
+                      ""])
+          after (string/join "\n"
+                    ["---"
+                     "id: 1"
+                     "---"
+                     "id: 2"
+                     "---"
+                     "id: 3"
+                     ""])
+          root-path "/tmp/"
+          file-path (str (gensym "humandb_out_insert!_test") ".yaml")
+          path (str root-path file-path)]
+      (spit path before)
+      (out/insert! path doc)
+      (is (= after (slurp path))))))
