@@ -4,7 +4,6 @@
     [clojure.string :as string]
     [humandb.out :as out]))
 
-
 (deftest replace-doc-in-stream
   (testing "first"
     (let [before (string/join "\n"
