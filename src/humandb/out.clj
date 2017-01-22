@@ -17,8 +17,7 @@
       vec
       (assoc-in [index] (doc->yaml doc))
       (->> (string/join "---\n"))
-      (->> (str "---\n"))
-      (str "---\n")))
+      (->> (str "---\n"))))
 
 (defn append-doc-to-stream
   [body doc]

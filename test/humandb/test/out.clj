@@ -12,14 +12,12 @@
                     "id: 1"
                     "---"
                     "id: 2"
-                    "---"
                     ""])
           after (string/join "\n"
                   ["---"
                    "foo: bar"
                    "---"
                    "id: 2"
-                   "---"
                    ""])]
       (is (= after
              (out/replace-doc-in-stream before 0 {:foo "bar"})))))
@@ -30,14 +28,12 @@
                     "id: 1"
                     "---"
                     "id: 2"
-                    "---"
                     ""])
           after (string/join "\n"
                   ["---"
                    "id: 1"
                    "---"
                    "foo: bar"
-                   "---"
                    ""])]
       (is (= after
              (out/replace-doc-in-stream before 1 {:foo "bar"}))))))
@@ -77,14 +73,12 @@
                     "id: 1"
                     "---"
                     "id: 2"
-                    "---"
                     ""])
           after (string/join "\n"
                   ["---"
                    "id: 1"
                    "---"
                    "foo: bar"
-                   "---"
                    ""])
           root-path "/tmp/"
           file-path "humandb_out_replace_test.yaml"

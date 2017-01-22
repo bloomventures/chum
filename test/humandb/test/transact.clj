@@ -444,7 +444,7 @@
           ; create a fake pre-version of file
           (spit path "---\n ---\n ---\n")
           (tx/save-toplevel-doc! db eid)
-          (is (= "---\ncontent: abcde\nid: 1000\ntype: post\n---\n"
+          (is (= "---\ncontent: abcde\nid: 1000\ntype: post\n"
                  (slurp path)))))))
 
   (testing "nested doc"
@@ -476,7 +476,7 @@
           ; create a fake pre-version of file
           (spit path "---\n ---\n ---\n")
           (tx/save-toplevel-doc! db eid)
-          (is (= "---\ncomments:\n- content: blargh\n  id: 5000\n  type: comment\ncontent: zzz\nid: 1000\ntype: post\n---\n"
+          (is (= "---\ncomments:\n- content: blargh\n  id: 5000\n  type: comment\ncontent: zzz\nid: 1000\ntype: post\n"
                  (slurp path))))))))
 
 
