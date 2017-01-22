@@ -97,18 +97,28 @@
     (out/insert! file-path (remove-metadata doc))))
 
 (defn save-doc!
-  "Saves top-level document to file"
+  "Saves a doc to file (creating or updating as necessary
+  Note: currently assumes it is top-level doc"
   [db eid]
+  (let [doc (get-doc db eid)
+        location (:db/src doc)
+        data-path (str (db :root-path) "/data/")]
+    (if location
+      (out/replace! data-path location (remove-metadata doc))
+      (save-new-doc! data-path doc))))
 
-  (if-let [parent-eid (get-parent db eid)]
-    (save-doc! db parent-eid)
+(defn toplevel-eid
+  "Given eid of a doc, return eid of topmost parent doc"
+  [db initial-eid]
+  (loop [eid initial-eid]
+    (if-let [parent-id (get-parent db eid)]
+      (recur parent-id)
+      eid)))
 
-    (let [doc (get-doc db eid)
-          location (:db/src doc)
-          data-path (str (db :root-path) "/data/")]
-      (if location
-        (out/replace! data-path location (remove-metadata doc))
-        (save-new-doc! data-path doc)))))
+(defn save-toplevel-doc!
+  "Given eid, finds parent of "
+  [db eid]
+  (save-doc! db (toplevel-eid db eid)))
 
 (defn affected-docs [tx]
   (set (map first (:tx-data tx))))
@@ -118,5 +128,5 @@
     ; TODO could identify parents of each affected-doc
     ; to avoid saving a top-level doc multiple times
     (doseq [doc (affected-docs @tx)]
-      (save-doc! db doc))))
+      (save-toplevel-doc! db doc))))
 

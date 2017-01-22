@@ -332,9 +332,92 @@
                          @(db :conn)
                          2000))]
         (is (= nil
-               (tx/get-parent db eid)))))))
+               (tx/get-parent db eid))))))
 
-(deftest save-doc!
+(testing "..."
+  (let [db (db/init! [["post", "comments", "comment"]
+                      ["comment", "author", "author"]]
+                     "/tmp/")
+        file-path "xyz"
+        docs [{:type "post"
+               :content "zzz"
+               :id 1000
+               :comments [{:id 5000
+                           :type "comment"
+                           :content "blargh"
+                           :db/src [file-path 0 :comments 0]}]
+               :db/src [file-path 0]}
+              {:type "post"
+               :id 4000
+               :content "zzzzz"
+               :db/src [file-path 1]}]]
+    (import/import-docs db docs)
+    (let [pid (first (d/q '[:find [?eid]
+                            :in $ ?id
+                            :where
+                            [?eid :id ?id]]
+                          @(db :conn)
+                          1000))
+          eid (first (d/q '[:find [?eid]
+                            :in $ ?id
+                            :where
+                            [?eid :id ?id]]
+                          @(db :conn)
+                          5000))]
+      (is (= pid
+             (tx/get-parent db eid))))))
+)
+
+(deftest toplevel-eid
+  (testing "returns same eid when already toplevel"
+    (let [db (db/init! [["post", "comments", "comment"]] "/tmp/")
+          docs [{:type "post"
+                 :id 4000
+                 :content "zzzzz"}]]
+      (import/import-docs db docs)
+      (let [eid (first (d/q '[:find [?eid]
+                              :in $ ?id
+                              :where
+                              [?eid :id ?id]]
+                            @(db :conn)
+                            4000))]
+        (is (= eid
+               (tx/toplevel-eid db eid))))))
+
+
+  (testing "returns parent eid when nested"
+    (let [db (db/init! [["post", "comments", "comment"]] "/tmp/")
+          file-path "xyz"
+          docs [{:type "post"
+                 :content "zzz"
+                 :id 1000
+                 :comments [{:id 5000
+                             :type "comment"
+                             :content "blargh"
+                             :db/src [file-path 0 :comments 0]}]
+                 :db/src [file-path 0]}
+                {:type "post"
+                 :id 4000
+                 :content "zzzzz"
+                 :db/src [file-path 1]}]
+          ]
+      (import/import-docs db docs)
+      (let [pid (first (d/q '[:find [?eid]
+                              :in $ ?id
+                              :where
+                              [?eid :id ?id]]
+                            @(db :conn)
+                            1000))
+            eid (first (d/q '[:find [?eid]
+                              :in $ ?id
+                              :where
+                              [?eid :id ?id]]
+                            @(db :conn)
+                            5000))]
+        (is (= pid
+               (tx/toplevel-eid db eid)))))))
+
+(deftest save-toplevel-doc!
   (testing "top-level doc"
     (let [root-path (str "/tmp/" (gensym "humandb_transact_savedoc_toplevel_test"))]
       (fs/mkdirs (str root-path "/data/"))
@@ -360,7 +443,7 @@
           ; save-doc! currently expects the docs to exist at their indexes
           ; create a fake pre-version of file
           (spit path "---\n ---\n ---\n")
-          (tx/save-doc! db eid)
+          (tx/save-toplevel-doc! db eid)
           (is (= "---\ncontent: abcde\nid: 1000\ntype: post\n---\n"
                  (slurp path)))))))
 
@@ -392,7 +475,7 @@
           ; save-doc! currently expects the docs to exist at their indexes
           ; create a fake pre-version of file
           (spit path "---\n ---\n ---\n")
-          (tx/save-doc! db eid)
+          (tx/save-toplevel-doc! db eid)
           (is (= "---\ncomments:\n- content: blargh\n  id: 5000\n  type: comment\ncontent: zzz\nid: 1000\ntype: post\n---\n"
                  (slurp path))))))))
 
