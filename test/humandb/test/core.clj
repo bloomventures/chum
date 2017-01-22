@@ -83,6 +83,34 @@
                                  db2
                                  "eloulk"))))))))
 
+        (testing "create a new doc"
+          (humandb/transact! db
+                             [{:db/id -1
+                               :id "bobbersonb"
+                               :type "artist"
+                               :name "Bob Bobberson"}])
 
-        (testing "create a new doc")
+          (testing "added in memory"
+            (is (= "Bob Bobberson"
+                   (first (humandb/query '[:find [?name]
+                                           :in $ ?id
+                                           :where
+                                           [?artist :id ?id]
+                                           [?artist :name ?name]]
+                                         db
+                                         "bobbersonb")))))
+
+          (testing "added to disk"
+            (let [db2 (humandb/read-db temp-db-path)]
+              (is (= "Bob Bobberson"
+                     (first (humandb/query '[:find [?name]
+                                             :in $ ?id
+                                             :where
+                                             [?artist :id ?id]
+                                             [?artist :name ?name]]
+                                           db2
+                                           "bobbersonb")))))))
+
+
+
         (testing "delete a doc")))))

@@ -90,6 +90,12 @@
        (remove (fn [r] (= :id (second r))))
        ffirst))
 
+(defn save-new-doc!
+  [data-path doc]
+  (let [file-name (str (or (:type doc) "entity") ".yml")
+        file-path (str data-path file-name)]
+    (out/insert! file-path (remove-metadata doc))))
+
 (defn save-doc!
   "Saves top-level document to file"
   [db eid]
@@ -98,8 +104,11 @@
     (save-doc! db parent-eid)
 
     (let [doc (get-doc db eid)
-          location (:db/src doc)]
-      (out/replace! (str (db :root-path) "/data/") location (remove-metadata doc)))))
+          location (:db/src doc)
+          data-path (str (db :root-path) "/data/")]
+      (if location
+        (out/replace! data-path location (remove-metadata doc))
+        (save-new-doc! data-path doc)))))
 
 (defn affected-docs [tx]
   (set (map first (:tx-data tx))))
