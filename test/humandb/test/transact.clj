@@ -41,7 +41,7 @@
                             :abc 123
                             :type "comment"
                             :db/src [:a 0 :comments]}}]
-          db (db/init! [["post", "comments", "comment"]] "/tmp/")]
+          db (db/create-db [["post", "comments", "comment"]] "/tmp/")]
       (import/import-docs db docs)
 
       (is (= true
@@ -57,7 +57,7 @@
                              :abc 123
                              :type "comment"
                              :db/src [:a 0 :comments 0]}]}]
-          db (db/init! [["post", "comments", "comment"]] "/tmp/")]
+          db (db/create-db [["post", "comments", "comment"]] "/tmp/")]
       (import/import-docs db docs)
 
       (is (= true
@@ -74,7 +74,7 @@
                  :abc 123
                  :type "comment"
                  :db/src [:a 1]}]
-          db (db/init! [["post", "comments", "comment"]] "/tmp/")]
+          db (db/create-db [["post", "comments", "comment"]] "/tmp/")]
         (import/import-docs db docs)
 
         (is (= false
@@ -95,9 +95,9 @@
                                       :type "author"
                                       :db/src [:a 0 :comments 0 :author]}}]}]
 
-          db (db/init! [["post", "comments", "comment"]
-                        ["comment", "author", "author"]]
-                       "/tmp/")]
+          db (db/create-db [["post", "comments", "comment"]
+                            ["comment", "author", "author"]]
+                           "/tmp/")]
         (import/import-docs db docs)
 
         (is (= false
@@ -117,7 +117,7 @@
                            :abc 123
                            :type "comment"
                            :db/src [:a 1 :comment]}}]
-          db (db/init! [["post", "comment", "comment"]] "/tmp/")]
+          db (db/create-db [["post", "comment", "comment"]] "/tmp/")]
       (import/import-docs db docs)
 
       (is (= false
@@ -141,7 +141,7 @@
                              :type "comment"
                              :db/src [:a 0 :comments 0]
                              :content "ayy"}]}]
-          db (db/init! [["post", "comments", "comment"]] "/tmp/")]
+          db (db/create-db [["post", "comments", "comment"]] "/tmp/")]
 
       (import/import-docs db docs)
       (let [pid (first (d/q '[:find [?eid]
@@ -176,7 +176,7 @@
                 {:id 2000
                  :type "comment"
                  :content "ayy"}]
-          db (db/init! [["post", "comments", "comment"]] "/tmp/")]
+          db (db/create-db [["post", "comments", "comment"]] "/tmp/")]
 
       (import/import-docs db docs)
 
@@ -224,7 +224,7 @@
 (deftest get-parent
   (testing "returns parent"
     (testing "when nested"
-      (let [db (db/init! [["post", "comments", "comment"]] "/tmp/")
+      (let [db (db/create-db [["post", "comments", "comment"]] "/tmp/")
             docs [{:type "post"
                    :content "abcde"
                    :id 1000
@@ -251,7 +251,7 @@
                  (tx/get-parent db eid))))))
 
     (testing "when nested in array"
-      (let [db (db/init! [["post", "comments", "comment"]] "/tmp/")
+      (let [db (db/create-db [["post", "comments", "comment"]] "/tmp/")
             docs [{:type "post"
                    :content "abcde"
                    :id 1000
@@ -281,9 +281,9 @@
                  (tx/get-parent db eid))))))
 
     (testing "when nested multiple levels deep"
-      (let [db (db/init! [["post", "comments", "comment"]
-                          ["comment", "author", "author"]]
-                         "/tmp/")
+      (let [db (db/create-db [["post", "comments", "comment"]
+                              ["comment", "author", "author"]]
+                             "/tmp/")
             docs [{:type "post"
                    :content "abcde"
                    :id 1000
@@ -310,7 +310,7 @@
                  (tx/get-parent db eid)))))))
 
   (testing "does not return parent for docs that aren't embedded"
-    (let [db (db/init! [["post", "comments", "comment"]] "/tmp/")
+    (let [db (db/create-db [["post", "comments", "comment"]] "/tmp/")
           docs [{:type "post"
                  :content "abcde"
                  :id 1000
@@ -335,9 +335,9 @@
                (tx/get-parent db eid))))))
 
 (testing "..."
-  (let [db (db/init! [["post", "comments", "comment"]
-                      ["comment", "author", "author"]]
-                     "/tmp/")
+  (let [db (db/create-db [["post", "comments", "comment"]
+                          ["comment", "author", "author"]]
+                         "/tmp/")
         file-path "xyz"
         docs [{:type "post"
                :content "zzz"
@@ -370,7 +370,7 @@
 
 (deftest toplevel-eid
   (testing "returns same eid when already toplevel"
-    (let [db (db/init! [["post", "comments", "comment"]] "/tmp/")
+    (let [db (db/create-db [["post", "comments", "comment"]] "/tmp/")
           docs [{:type "post"
                  :id 4000
                  :content "zzzzz"}]]
@@ -386,7 +386,7 @@
 
 
   (testing "returns parent eid when nested"
-    (let [db (db/init! [["post", "comments", "comment"]] "/tmp/")
+    (let [db (db/create-db [["post", "comments", "comment"]] "/tmp/")
           file-path "xyz"
           docs [{:type "post"
                  :content "zzz"
@@ -424,7 +424,7 @@
       (let [file-path "stuff.yaml"
             path (str root-path "/data/" file-path)
             relationships [["post", "comments", "comment"]]
-            db (db/init! relationships root-path)
+            db (db/create-db relationships root-path)
             docs [{:type "post"
                    :content "abcde"
                    :id 1000
@@ -452,7 +452,7 @@
       (fs/mkdirs (str root-path "/data/"))
       (let [file-path "stuff.yaml"
             path (str root-path "/data/" file-path)
-            db (db/init! [["post", "comments", "comment"]] root-path)
+            db (db/create-db [["post", "comments", "comment"]] root-path)
             docs [{:type "post"
                    :content "zzz"
                    :id 1000
@@ -484,7 +484,7 @@
   (testing "update an existing document"
     (let [root-path (str "/tmp/" (gensym "humandb_transact_transact_test"))]
       (fs/mkdirs (str root-path "/data/"))
-      (let [db (db/init! [] root-path)
+      (let [db (db/create-db [] root-path)
             file-path "stuff.yml"
             path (str root-path "/data/" file-path)]
         (spit path "---\n ---\n ---\n")

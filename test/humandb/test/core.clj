@@ -36,7 +36,8 @@
   (testing "end-to-end"
     (let [temp-db-path (str "/tmp/" (gensym "humandb_end_to_end_test"))]
       (fs/copy-dir "./resources/test_data" temp-db-path)
-      (let [db (humandb/read-db temp-db-path)]
+      (let [db (humandb/read-db temp-db-path)
+            artist-id "eloulk"]
         (testing "query"
           (is (= (set ["Sculpture 1" "Sculpture 2"])
                  (set (->> (humandb/query '[:find ?sculpture-name
@@ -50,66 +51,101 @@
                            (map first))))))
 
         (testing "update a doc"
-          (let [artist-eid (first (humandb/query '[:find [?artist]
+          (let [artist-id "eloulk"
+                artist-name "John Smith"
+                artist-eid (first (humandb/query '[:find [?artist]
+                                                   :in $ ?artist-id
                                                    :where
-                                                   [?artist :id "eloulk"]]
-                                    db))
-                path (humandb/query '[:find ?path
-                                      :in $ ?eid
-                                      :where
-                                      [?eid :db/src ?path]]
-                       db
-                       artist-eid)]
+                                                   [?artist :id ?artist-id]]
+                                    db
+                                    artist-id))]
 
-            (humandb/transact! db [[:db/add artist-eid :name "John Smith"]])
+            (humandb/transact! db [[:db/add artist-eid :name artist-name]])
 
             (testing "updated in memory"
-              (is (= "John Smith"
+              (is (= artist-name
                      (ffirst (humandb/query '[:find ?name
-                                              :in $ ?artist-eid
+                                              :in $ ?artist-id
                                               :where
-                                              [?artist-eid :name ?name]]
+                                              [?artist :name ?name]
+                                              [?artist :id ?artist-id]]
                                             db
-                                            artist-eid)))))
+                                            artist-id)))))
 
             (testing "updated on disk"
               (let [db2 (humandb/read-db temp-db-path)]
-                (is (= "John Smith"
+                (is (= artist-name
                        (ffirst (humandb/query '[:find ?name
                                                 :in $ ?id
                                                 :where
                                                 [?artist-eid :id ?id]
                                                 [?artist-eid :name ?name]]
                                  db2
-                                 "eloulk"))))))))
+                                 artist-id))))))))
 
         (testing "create a new doc"
-          (humandb/transact! db
-                             [{:db/id -1
-                               :id "bobbersonb"
-                               :type "artist"
-                               :name "Bob Bobberson"}])
+          (let [artist-id "bobbersonb"
+                artist-name "Bob Bobberson"]
+            (humandb/transact! db
+                               [{:db/id -1
+                                 :id artist-id
+                                 :type "artist"
+                                 :name "Bob Bobberson"}])
 
-          (testing "added in memory"
-            (is (= "Bob Bobberson"
-                   (first (humandb/query '[:find [?name]
-                                           :in $ ?id
-                                           :where
-                                           [?artist :id ?id]
-                                           [?artist :name ?name]]
-                                         db
-                                         "bobbersonb")))))
-
-          (testing "added to disk"
-            (let [db2 (humandb/read-db temp-db-path)]
-              (is (= "Bob Bobberson"
+            (testing "added in memory"
+              (is (= artist-name
                      (first (humandb/query '[:find [?name]
                                              :in $ ?id
                                              :where
                                              [?artist :id ?id]
                                              [?artist :name ?name]]
-                                           db2
-                                           "bobbersonb")))))))
+                                           db
+                                           artist-id)))))
+
+            (testing "added to disk"
+              (let [db2 (humandb/read-db temp-db-path)]
+                (is (= artist-name
+                       (first (humandb/query '[:find [?name]
+                                               :in $ ?id
+                                               :where
+                                               [?artist :id ?id]
+                                               [?artist :name ?name]]
+                                             db2
+                                             artist-id))))))
+
+            (testing "updating a newly created doc"
+              (let [artist-name "Sir Bobberson the Updated"
+                    artist-eid (first (humandb/query '[:find [?artist]
+                                                       :in $ ?artist-id
+                                                       :where
+                                                       [?artist :id ?artist-id]]
+                                                     db
+                                                     artist-id))]
+
+                (humandb/transact! db [[:db/add artist-eid :name artist-name]])
+
+                (testing "updated in memory"
+                  (is (= artist-name
+                         (ffirst (humandb/query '[:find ?name
+                                                  :in $ ?artist-id
+                                                  :where
+                                                  [?artist :name ?name]
+                                                  [?artist :id ?artist-id]]
+                                                db
+                                                artist-id)))))
+
+                (testing "updated on disk"
+                  (let [db2 (humandb/read-db temp-db-path)
+                        results (humandb/query '[:find ?name
+                                                 :in $ ?id
+                                                 :where
+                                                 [?artist-eid :id ?id]
+                                                 [?artist-eid :name ?name]]
+                                               db2
+                                               artist-id)]
+                    (is (= 1 (count results)))
+                    (is (= artist-name (ffirst results)))))))))
+
 
 
 

@@ -1,6 +1,7 @@
 (ns humandb.transact
   (:require
     [datascript.core :as d]
+    [humandb.db :as db]
     [humandb.out :as out]))
 
 (defn tee [x]
@@ -128,5 +129,8 @@
     ; TODO could identify parents of each affected-doc
     ; to avoid saving a top-level doc multiple times
     (doseq [doc (affected-docs @tx)]
-      (save-toplevel-doc! db doc))))
+      (save-toplevel-doc! db doc))
+
+    (db/reload! db)))
+
 
