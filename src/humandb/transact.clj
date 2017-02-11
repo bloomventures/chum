@@ -93,9 +93,8 @@
 
 (defn save-new-doc!
   [data-path doc]
-  (let [file-name (str (or (:type doc) "entity") ".yml")
-        file-path (str data-path file-name)]
-    (out/insert! file-path (remove-metadata doc))))
+  (let [file-name (str (or (:type doc) "entity") ".yml")]
+    (out/insert! data-path [file-name] (remove-metadata doc))))
 
 (defn persist-doc!
   "Saves a doc to file (creating, replacing or deleting as necessary)

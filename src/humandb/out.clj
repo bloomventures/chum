@@ -48,10 +48,11 @@
       (spit path new-body))))
 
 (defn insert!
-  [file-path doc]
-  (if (fs/exists? file-path)
-    (spit file-path (append-doc-to-stream (slurp file-path) doc))
-    (spit file-path (create-stream-with-doc doc))))
+  [root-path [file-path] doc]
+  (let [path (str root-path file-path)]
+    (if (fs/exists? path)
+      (spit path (append-doc-to-stream (slurp path) doc))
+      (spit path (create-stream-with-doc doc)))))
 
 (defn delete!
   [root-path [file-path index]]

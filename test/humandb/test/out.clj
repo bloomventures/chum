@@ -146,10 +146,9 @@
                    "id: 3"
                    ""])
           root-path "/tmp/"
-          file-path (str (gensym "humandb_out_insert!_test") ".yaml")
-          path (str root-path file-path)]
-      (out/insert! path doc)
-      (is (= after (slurp path)))))
+          file-path (str (gensym "humandb_out_insert!_test") ".yaml")]
+      (out/insert! root-path [file-path] doc)
+      (is (= after (slurp (str root-path file-path))))))
 
   (testing "insert when file exists, appends to file"
     (let [doc {:id 3}
@@ -168,8 +167,7 @@
                      "id: 3"
                      ""])
           root-path "/tmp/"
-          file-path (str (gensym "humandb_out_insert!_test") ".yaml")
-          path (str root-path file-path)]
-      (spit path before)
-      (out/insert! path doc)
-      (is (= after (slurp path))))))
+          file-path (str (gensym "humandb_out_insert!_test") ".yaml")]
+      (spit (str root-path file-path) before)
+      (out/insert! root-path [file-path] doc)
+      (is (= after (slurp (str root-path file-path)))))))
