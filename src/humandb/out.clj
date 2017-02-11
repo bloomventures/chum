@@ -7,6 +7,9 @@
 (defn doc->yaml [doc]
   (yaml/generate-string doc :dumper-options {:flow-style :block}))
 
+(defn dissoc-v [v n]
+  (into (subvec v 0 n) (subvec v (inc n))))
+
 (defn replace-doc-in-stream
   "Replaces a doc at the specified location in body (yaml collection of doc).
   Expects newline at end-of-body"
@@ -22,6 +25,16 @@
 (defn append-doc-to-stream
   [body doc]
   (str body "---\n" (doc->yaml doc)))
+
+(defn remove-doc-from-stream
+  [body index]
+  (-> body
+      (string/split #"---\n")
+      (->> (remove string/blank?))
+      vec
+      (dissoc-v index)
+      (->> (string/join "---\n"))
+      (->> (str "---\n"))))
 
 (defn create-stream-with-doc
   [doc]
@@ -40,3 +53,8 @@
     (spit file-path (append-doc-to-stream (slurp file-path) doc))
     (spit file-path (create-stream-with-doc doc))))
 
+(defn delete!
+  [root-path [file-path index]]
+  (let [path (str root-path file-path)
+        stream (slurp path)]
+    (spit path (remove-doc-from-stream stream index))))

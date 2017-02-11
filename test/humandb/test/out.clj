@@ -37,6 +37,58 @@
       (is (= after
              (out/replace-doc-in-stream before 1 {:foo "bar"}))))))
 
+(deftest remove-doc-from-stream
+  (testing "can remove doc from stream"
+    (testing "start"
+      (let [before (string/join "\n"
+                                ["---"
+                                 "id: 1"
+                                 "---"
+                                 "id: 2"
+                                 ""])
+            after (string/join "\n"
+                               ["---"
+                                "id: 2"
+                                ""])]
+        (is (= after
+               (out/remove-doc-from-stream before 0))))
+
+      (testing "middle"
+        (let [before (string/join "\n"
+                                  ["---"
+                                   "id: 1"
+                                   "---"
+                                   "id: 2"
+                                   "---"
+                                   "id: 3"
+                                   ""])
+              after (string/join "\n"
+                                 ["---"
+                                  "id: 1"
+                                  "---"
+                                  "id: 3"
+                                  ""])]
+          (is (= after
+                 (out/remove-doc-from-stream before 1)))))
+
+      (testing "end"
+        (let [before (string/join "\n"
+                                  ["---"
+                                   "id: 1"
+                                   "---"
+                                   "id: 2"
+                                   "---"
+                                   "id: 3"
+                                   ""])
+              after (string/join "\n"
+                                 ["---"
+                                  "id: 1"
+                                  "---"
+                                  "id: 2"
+                                  ""])]
+          (is (= after
+                 (out/remove-doc-from-stream before 2))))))))
+
 (deftest append-doc-to-stream
   (testing "can append doc to yaml stream"
     (let [doc {:id 3}

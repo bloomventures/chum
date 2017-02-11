@@ -83,6 +83,39 @@
                                  db2
                                  artist-id))))))))
 
+        (testing "delete an existing doc"
+          (let [db (humandb/read-db temp-db-path)]
+            (let [artist-id "eloulk"
+                  artist-eid (first (humandb/query '[:find [?artist]
+                                                     :in $ ?artist-id
+                                                     :where
+                                                     [?artist :id ?artist-id]]
+                                                   db
+                                                   artist-id))]
+
+              (humandb/transact! db [[:db.fn/retractEntity artist-eid]])
+
+              (testing "deleted in memory"
+                (is (= 0
+                       (count (tee (humandb/query '[:find [?name]
+                                                    :in $ ?id
+                                                    :where
+                                                    [?artist :id ?id]
+                                                    [?artist :name ?name]]
+                                             db
+                                             artist-id))))))
+
+              (testing "deleted on disk"
+                (let [db2 (humandb/read-db temp-db-path)]
+                  (is (= 0
+                         (count (humandb/query '[:find [?name]
+                                                 :in $ ?id
+                                                 :where
+                                                 [?artist :id ?id]
+                                                 [?artist :name ?name]]
+                                               db2
+                                               artist-id)))))))))
+
         (testing "create a new doc"
           (let [artist-id "bobbersonb"
                 artist-name "Bob Bobberson"]

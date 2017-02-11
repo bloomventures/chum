@@ -97,16 +97,34 @@
         file-path (str data-path file-name)]
     (out/insert! file-path (remove-metadata doc))))
 
-(defn save-doc!
-  "Saves a doc to file (creating or updating as necessary
+(defn persist-doc!
+  "Saves a doc to file (creating, replacing or deleting as necessary)
   Note: currently assumes it is top-level doc"
-  [db eid]
+  [db eid tx-data]
   (let [doc (get-doc db eid)
-        location (:db/src doc)
         data-path (str (db :root-path) "/data/")]
-    (if location
-      (out/replace! data-path location (remove-metadata doc))
-      (save-new-doc! data-path doc))))
+    (cond
+      ; there are no attributes
+      ; delete on disk
+      (empty? (dissoc doc :db/id))
+      (out/delete! data-path (when tx-data
+                               (-> tx-data
+                                   (->> (filter (fn [datom]
+                                                  (and
+                                                    (= eid (get datom :e))
+                                                    (= :db/src (get datom :a))))))
+                                    first
+                                    (get :v))))
+
+      ; there is no location
+      ; create on disk
+      (nil? (:db/src doc))
+      (save-new-doc! data-path doc)
+
+      ; otherwise
+      ; replace on disk
+      :else
+      (out/replace! data-path (:db/src doc) (remove-metadata doc)))))
 
 (defn toplevel-eid
   "Given eid of a doc, return eid of topmost parent doc"
@@ -116,20 +134,18 @@
       (recur parent-id)
       eid)))
 
-(defn save-toplevel-doc!
+(defn persist-toplevel-doc!
   "Given eid, finds parent of "
-  [db eid]
-  (save-doc! db (toplevel-eid db eid)))
+  [db eid & [tx-data]]
+  (persist-doc! db (toplevel-eid db eid) tx-data))
 
 (defn affected-docs [tx]
   (set (map first (:tx-data tx))))
 
 (defn transact! [db txs]
   (let [tx (d/transact (db :conn) txs)]
-    ; TODO could identify parents of each affected-doc
-    ; to avoid saving a top-level doc multiple times
     (doseq [doc (affected-docs @tx)]
-      (save-toplevel-doc! db doc))
+      (persist-toplevel-doc! db doc (:tx-data @tx)))
 
     (db/reload! db)))
 

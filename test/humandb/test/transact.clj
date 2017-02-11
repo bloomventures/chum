@@ -417,7 +417,7 @@
         (is (= pid
                (tx/toplevel-eid db eid)))))))
 
-(deftest save-toplevel-doc!
+(deftest persist-toplevel-doc!
   (testing "top-level doc"
     (let [root-path (str "/tmp/" (gensym "humandb_transact_savedoc_toplevel_test"))]
       (fs/mkdirs (str root-path "/data/"))
@@ -443,7 +443,7 @@
           ; save-doc! currently expects the docs to exist at their indexes
           ; create a fake pre-version of file
           (spit path "---\n ---\n ---\n")
-          (tx/save-toplevel-doc! db eid)
+          (tx/persist-toplevel-doc! db eid)
           (is (= "---\ncontent: abcde\nid: 1000\ntype: post\n"
                  (slurp path)))))))
 
@@ -475,7 +475,7 @@
           ; save-doc! currently expects the docs to exist at their indexes
           ; create a fake pre-version of file
           (spit path "---\n ---\n ---\n")
-          (tx/save-toplevel-doc! db eid)
+          (tx/persist-toplevel-doc! db eid)
           (is (= "---\ncomments:\n- content: blargh\n  id: 5000\n  type: comment\ncontent: zzz\nid: 1000\ntype: post\n"
                  (slurp path))))))))
 
