@@ -96,6 +96,17 @@
   (let [file-name (str (or (:type doc) "entity") ".yml")]
     (out/insert! data-path [file-name] (remove-metadata doc))))
 
+(defn extract-deleted-doc-src
+  [tx-data eid]
+  (when tx-data
+    (-> tx-data
+        (->> (filter (fn [datom]
+                       (and
+                         (= eid (get datom :e))
+                         (= :db/src (get datom :a))))))
+        first
+        (get :v))))
+
 (defn persist-doc!
   "Saves a doc to file (creating, replacing or deleting as necessary)
   Note: currently assumes it is top-level doc"
@@ -106,14 +117,7 @@
       ; there are no attributes
       ; delete on disk
       (empty? (dissoc doc :db/id))
-      (out/delete! data-path (when tx-data
-                               (-> tx-data
-                                   (->> (filter (fn [datom]
-                                                  (and
-                                                    (= eid (get datom :e))
-                                                    (= :db/src (get datom :a))))))
-                                    first
-                                    (get :v))))
+      (out/delete! data-path (extract-deleted-doc-src tx-data eid))
 
       ; there is no location
       ; create on disk
